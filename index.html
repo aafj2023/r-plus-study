@@ -162,6 +162,8 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sa
 .streak-box{flex:1;text-align:center;background:var(--bg);border-radius:11px;padding:11px 6px}
 .streak-n{font-size:22px;font-weight:900;line-height:1}
 .streak-l{font-size:9px;color:var(--t2);text-transform:uppercase;letter-spacing:.3px;margin-top:3px}
+.chipbtn{padding:6px 13px;border-radius:20px;font-size:12px;font-weight:700;border:1.5px solid var(--bd);background:#fff;color:var(--t2);cursor:pointer}
+.chipbtn.on{background:var(--p);border-color:var(--p);color:#fff}
 
 /* ONBOARDING */
 #ob{position:fixed;inset:0;background:#fff;z-index:200;overflow:hidden}
@@ -301,6 +303,7 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sa
           <button class="ms-qa" onclick="addAula(1)">📚 +1 aula</button>
           <button class="ms-qa" onclick="addQ(10)">❓ +10 questões</button>
         </div>
+        <div id="missionInsight" style="font-size:11.5px;opacity:.92;margin-top:10px;line-height:1.45"></div>
       </div>
 
       <!-- PROJEÇÃO -->
@@ -537,6 +540,28 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sa
         <div id="projStats"></div>
       </div>
       <div class="card">
+        <div class="ctitle">🔥 Constância</div>
+        <div class="streak-grid">
+          <div class="streak-box"><div class="streak-n" style="color:var(--w)" id="stkCur">0</div><div class="streak-l">dias seguidos</div></div>
+          <div class="streak-box"><div class="streak-n" style="color:var(--p)" id="stkMax">0</div><div class="streak-l">recorde</div></div>
+          <div class="streak-box"><div class="streak-n" style="color:var(--s)" id="stkAdh">0%</div><div class="streak-l">aderência</div></div>
+        </div>
+        <div id="behaviorMsg" style="margin-top:11px"></div>
+      </div>
+      <div class="card">
+        <div class="ctitle">📅 Atividade (últimas semanas)</div>
+        <div class="hm" id="heatmap"></div>
+        <div class="hm-legend"><span>menos</span><div class="hm-c" style="background:#eef2f7"></div><div class="hm-c" style="background:#c7d2fe"></div><div class="hm-c" style="background:#818cf8"></div><div class="hm-c" style="background:#6366f1"></div><div class="hm-c" style="background:#4338ca"></div><span>mais</span></div>
+        <div style="font-size:12px;color:var(--t2);margin-top:8px" id="activeMonth">—</div>
+      </div>
+      <div class="card">
+        <div class="ctitle" style="display:flex;justify-content:space-between;align-items:center">
+          <span>🗺️ Mapa do curso por disciplina</span>
+          <button class="btn btn-o btn-sm" onclick="openTimeline()">📅 Histórico</button>
+        </div>
+        <div id="courseMap"></div>
+      </div>
+      <div class="card">
         <div class="ctitle">⏱ Carga de estudo estimada</div>
         <div class="sg3" style="margin-bottom:0">
           <div class="sc"><div class="sl">Por dia</div><div class="sv" style="color:var(--p);font-size:18px" id="stMin">—</div><div class="ss">min/dia</div></div>
@@ -649,6 +674,21 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sa
       <button class="btn btn-o" style="flex:1" onclick="closeLessonModal()">Cancelar</button>
       <button class="btn btn-p" style="flex:2" id="lmodSave" onclick="saveLessonModal()">Salvar</button>
     </div>
+  </div>
+</div>
+
+<!-- MODAL: timeline / histórico completo -->
+<div class="modal" id="tmod">
+  <div class="msheet">
+    <div class="mhandle"></div>
+    <div class="mtitle">📅 Histórico de estudos</div>
+    <div class="msub">Tudo que você registrou, agrupado.</div>
+    <div style="display:flex;gap:6px;margin-bottom:6px">
+      <button class="chipbtn on" id="tlWeek" onclick="setTLMode('week')">Por semana</button>
+      <button class="chipbtn" id="tlDisc" onclick="setTLMode('disc')">Por disciplina</button>
+    </div>
+    <div id="tlBody"></div>
+    <div class="macts"><button class="btn btn-o" style="flex:1" onclick="closeTimeline()">Fechar</button></div>
   </div>
 </div>
 
@@ -788,10 +828,15 @@ const pctDone=()=>D.totalAulas?Math.min(100,Math.round(cumAulas()/D.totalAulas*1
 const remaining=()=>Math.max(0,D.totalAulas-cumAulas());
 const daysLeftWeek=()=>{const d=new Date();return 7-((d.getDay()+6)%7);};
 
+// ritmo real: média ponderada das últimas semanas (recentes pesam mais) — não é média simples
 function pace(){
   const hist=D.weekHistory.map(h=>+h.n||0);
-  if(hist.length){const avg=hist.reduce((a,b)=>a+b,0)/hist.length;return avg>0?avg:aulaGoal();}
-  const wk=weekAulas();return wk>0?wk:aulaGoal();
+  if(!hist.length){const wk=weekAulas();return wk>0?wk:aulaGoal();}
+  const last=hist.slice(-4);let wsum=0,vsum=0;
+  last.forEach((n,i)=>{const wt=i+1;wsum+=wt;vsum+=n*wt;});
+  let p=wsum?vsum/wsum:0;
+  if(p<=0)p=Math.max(1,aulaGoal()*0.5);
+  return p;
 }
 function proj(){
   const total=D.totalAulas,cum=cumAulas(),rem=remaining(),wl=weeksLeft(),p=pace();
@@ -907,6 +952,7 @@ function renderToday(){
 
   renderProj('projHoje',true);
   renderDec('decToday',true);
+  renderMissionInsight();
 }
 
 function setRing(id,circ,pct,color){
@@ -1040,6 +1086,7 @@ function renderStats(){
     const histQ=[...D.qWeekHistory.slice(-7),{label:'Atual',n:weekQ()}];
     const cQ=document.getElementById('qHistChart2');
     if(cQ){if(qHChart2)qHChart2.destroy();qHChart2=new Chart(cQ.getContext('2d'),barCfg(histQ,'#8b5cf6',qGoal()));}
+  renderStreaks();renderHeatmap();renderCourseMap();
   }
 }
 
@@ -1162,8 +1209,126 @@ async function renderLessonHist(){
   }).join('')+(all.length>15?`<div style="font-size:11px;color:var(--t2);text-align:center;padding-top:8px">+${all.length-15} mais no histórico completo</div>`:'');
 }
 
+// ═══ ANALYTICS / INTELIGÊNCIA COMPORTAMENTAL ═══
+function iso(d){return new Date(d).toISOString().slice(0,10);}
+function activeDateSet(){const s=new Set();for(const[d,n]of Object.entries(D.aulaLog||{}))if(+n>0)s.add(d);for(const[d,n]of Object.entries(D.questLog||{}))if(+n>0)s.add(d);return s;}
+function lastActiveDate(){const a=[...activeDateSet()].sort();return a.length?a[a.length-1]:null;}
+function daysSince(dstr){if(!dstr)return null;return Math.floor((new Date(today())-new Date(dstr))/86400000);}
+function streaks(){
+  const s=activeDateSet();let cur=0,probe=new Date(today());
+  if(!s.has(iso(probe)))probe.setDate(probe.getDate()-1);
+  while(s.has(iso(probe))){cur++;probe.setDate(probe.getDate()-1);}
+  const dates=[...s].sort();let max=0,run=0,prev=null;
+  for(const d of dates){if(prev&&Math.round((new Date(d)-new Date(prev))/86400000)===1)run++;else run=1;if(run>max)max=run;prev=d;}
+  return{current:cur,max,activeCount:s.size};
+}
+function consistency(){
+  const weeks=D.weekHistory.map(h=>+h.n||0).concat([weekAulas()]);
+  const total=weeks.length,g=D.aulaGoal||1;
+  const met=weeks.filter(n=>n>=g).length,active=weeks.filter(n=>n>0).length;
+  return{weeks:total,adherence:total?Math.round(met/total*100):0,activeRate:total?Math.round(active/total*100):0};
+}
+function trend(){
+  const w=D.weekHistory.map(h=>+h.n||0).concat([weekAulas()]);
+  if(w.length<3)return{pct:0,dir:'flat'};
+  const recent=w.slice(-2),earlier=w.slice(0,-2);
+  const ra=recent.reduce((a,b)=>a+b,0)/recent.length,ea=earlier.reduce((a,b)=>a+b,0)/earlier.length;
+  if(ea<=0)return{pct:ra>0?100:0,dir:ra>0?'up':'flat'};
+  const pct=Math.round((ra-ea)/ea*100);
+  return{pct,dir:pct>=8?'up':pct<=-8?'down':'flat'};
+}
+function activeDaysInMonth(){const ms=monthStart();return[...activeDateSet()].filter(d=>d>=ms).length;}
+function behavioral(){
+  const st=streaks(),tr=trend(),cons=consistency(),x=proj(),gap=daysSince(lastActiveDate());
+  const out=[];
+  if(gap!==null&&gap>=3)out.push({t:'warn',m:`Faz ${gap} dias sem registrar estudo. Sem culpa — 1 aula hoje já reativa o ritmo.`});
+  if(tr.dir==='down')out.push({t:'warn',m:`Seu ritmo caiu ${Math.abs(tr.pct)}% em relação às semanas anteriores. Uma semana mais leve faz parte do plano.`});
+  if(x.req&&x.req>(D.aulaGoal||1)*1.3)out.push({t:'warn',m:`O backlog subiu: o necessário (${x.req}/sem) passou da sua meta (${D.aulaGoal}/sem). Ajustar a meta ou a data é parte do método.`});
+  if(st.current>=3)out.push({t:'good',m:`${st.current} dias seguidos de estudo. Constância acima da média! 🔥`});
+  if(tr.dir==='up')out.push({t:'good',m:`Seu ritmo subiu ${tr.pct}% nas últimas semanas. Excelente recuperação.`});
+  if(cons.weeks>=3&&cons.adherence>=70)out.push({t:'good',m:`Você bate a meta em ${cons.adherence}% das semanas há ${cons.weeks} semanas. Isso é consistência real.`});
+  if(gap===0&&st.current>=2&&tr.dir!=='down')out.push({t:'good',m:`Mesmo com a rotina puxada, você manteve a continuidade. É exatamente isso que aprova.`});
+  if(!out.length)out.push({t:'neutral',m:`Continuidade mínima vale mais que perfeição ocasional. Registrar 1 aula já mantém o sistema vivo.`});
+  return out;
+}
+function pickInsight(){const b=behavioral();return b.find(x=>x.t==='warn')||b.find(x=>x.t==='good')||b[0];}
+function renderMissionInsight(){
+  const el=document.getElementById('missionInsight');if(!el)return;
+  const ins=pickInsight();
+  el.textContent=(ins.t==='warn'?'⚠ ':ins.t==='good'?'✓ ':'💡 ')+ins.m;
+}
+function renderBehaviorInto(elId,max){
+  const el=document.getElementById(elId);if(!el)return;
+  const b=behavioral(),sel=[],warn=b.find(x=>x.t==='warn'),good=b.find(x=>x.t==='good');
+  if(warn)sel.push(warn);if(good)sel.push(good);if(!sel.length)sel.push(b[0]);
+  el.innerHTML=sel.slice(0,max||2).map(x=>{
+    const c=x.t==='warn'?'crit':x.t==='good'?'ahd':'tod',ic=x.t==='warn'?'⚠':x.t==='good'?'✓':'💡';
+    return `<div class="dm ${c}" style="margin-bottom:6px"><div class="di"><span class="da">${ic}</span><span>${esc(x.m)}</span></div></div>`;
+  }).join('');
+}
+function renderStreaks(){
+  const st=streaks(),cons=consistency(),set=(i,v)=>{const e=document.getElementById(i);if(e)e.textContent=v;};
+  set('stkCur',st.current);set('stkMax',st.max);set('stkAdh',cons.adherence+'%');
+  renderBehaviorInto('behaviorMsg',2);
+}
+function renderHeatmap(){
+  const el=document.getElementById('heatmap');if(!el)return;
+  const cells=16*7,colors=['#eef2f7','#c7d2fe','#818cf8','#6366f1','#4338ca'];
+  const start=new Date(today());start.setDate(start.getDate()-(cells-1));
+  let html='';
+  for(let i=0;i<cells;i++){const d=new Date(start);d.setDate(start.getDate()+i);const ds=iso(d);
+    const a=+(D.aulaLog[ds]||0),q=+(D.questLog[ds]||0);let lvl=0;
+    if(a>=1||q>0)lvl=1;if(a>=2||q>=20)lvl=2;if(a>=3||q>=40)lvl=3;if(a>=5||q>=80)lvl=4;
+    html+=`<div class="hm-c" style="background:${colors[lvl]}" title="${fmtBR(ds)}: ${a} aula(s), ${q} questões"></div>`;
+  }
+  el.innerHTML=html;
+  const am=document.getElementById('activeMonth');
+  if(am)am.textContent=`${activeDaysInMonth()} dias ativos neste mês · ${streaks().activeCount} dias ativos no total`;
+}
+async function renderCourseMap(){
+  const el=document.getElementById('courseMap');if(!el)return;
+  if(typeof Store==='undefined'||!Store.ready){el.innerHTML='<div style="font-size:12px;color:var(--t2)">Carregando…</div>';return;}
+  let all=[];try{all=await Store.getLessons();}catch(e){}
+  const totDone=cumAulas(),x=proj();
+  const head=`<div style="font-size:12px;color:var(--t2);margin-bottom:11px">Curso: <strong>${totDone}/${D.totalAulas}</strong> (${pctDone()}%) · faltam ${remaining()} · previsão ${x.finishDate?fmtBR(iso(x.finishDate)):'—'}</div>`;
+  if(!all.length){el.innerHTML=head+'<div style="font-size:12px;color:var(--t2);line-height:1.5">Registre aulas com disciplina (📚 Aulas → “+ Registrar aula”) para ver o mapa por disciplina. Aulas dos contadores rápidos contam no total acima.</div>';return;}
+  const agg={};all.forEach(r=>{const k=r.disciplina||'Geral';agg[k]=(agg[k]||0)+1;});
+  const entries=Object.entries(agg).sort((a,b)=>b[1]-a[1]),max=Math.max(...entries.map(e=>e[1]));
+  const untyped=Math.max(0,totDone-all.length);
+  let body=entries.map(([disc,n])=>{
+    const col=discColor(disc),pct=Math.round(n/max*100);
+    return `<div class="disc-row"><div class="disc-head"><span>${esc(disc)}</span><span style="color:var(--t2)">${n} aula(s)</span></div><div class="pwrap"><div class="pfill" style="background:${col};width:${pct}%"></div></div></div>`;
+  }).join('');
+  if(untyped>0)body+=`<div style="font-size:11px;color:var(--t2);margin-top:4px">+${untyped} aula(s) sem disciplina (contadores rápidos)</div>`;
+  el.innerHTML=head+body;
+}
+
+// ═══ TIMELINE (modal) ═══
+let tlMode='week';
+function openTimeline(){document.getElementById('tmod').classList.add('on');renderTimeline();}
+function closeTimeline(){document.getElementById('tmod').classList.remove('on');}
+function setTLMode(m){tlMode=m;document.getElementById('tlWeek').classList.toggle('on',m==='week');document.getElementById('tlDisc').classList.toggle('on',m==='disc');renderTimeline();}
+async function renderTimeline(){
+  const el=document.getElementById('tlBody');if(!el)return;
+  let all=[];try{all=await Store.getLessons();}catch(e){}
+  if(!all.length){el.innerHTML='<div style="font-size:13px;color:var(--t2);padding:10px 0">Nenhuma aula registrada ainda. Use “+ Registrar aula” na aba 📚.</div>';return;}
+  const groups={};
+  if(tlMode==='week')all.forEach(r=>{const wk=iso(monday(new Date(r.date)));(groups[wk]=groups[wk]||[]).push(r);});
+  else all.forEach(r=>{const k=r.disciplina||'Geral';(groups[k]=groups[k]||[]).push(r);});
+  const keys=Object.keys(groups).sort((a,b)=>tlMode==='week'?(''+b).localeCompare(''+a):groups[b].length-groups[a].length);
+  el.innerHTML=keys.map(k=>{
+    const items=groups[k],title=tlMode==='week'?('Semana de '+fmtBR(k)):k;
+    const head=`<div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.4px;color:${tlMode==='disc'?discColor(k):'var(--p)'};margin:12px 0 6px">${esc(title)} · ${items.length}</div>`;
+    const rows=items.map(r=>{
+      const t=(tlMode==='week'?(r.disciplina||'Geral')+(r.numero!=null||r.nome?' — ':''):'')+(r.numero!=null?'Aula '+r.numero:'')+(r.nome?(r.numero!=null?': ':'')+r.nome:'');
+      return `<div class="hl"><div class="hl-dot" style="background:${discColor(r.disciplina)}"></div><div class="hl-info"><div class="hl-t">${esc(t||r.disciplina||'Aula')}</div><div class="hl-s">${fmtBR(r.date)}${r.duracao?' · '+r.duracao+' min':''}${r.obs?' · '+esc(r.obs):''}</div></div></div>`;
+    }).join('');
+    return head+rows;
+  }).join('')+`<div style="font-size:12px;color:var(--t2);text-align:center;margin-top:14px;padding-top:10px;border-top:1px solid var(--bd)">Total acumulado: <strong>${all.length}</strong> aulas registradas</div>`;
+}
+
 // chamado quando o Store/IndexedDB termina de inicializar
-function onStoreReady(){renderLessonHist();fillDiscList();}
+function onStoreReady(){renderLessonHist();fillDiscList();renderCourseMap();renderStreaks();renderMissionInsight();}
 
 // ═══ TABS ═══
 const TABS={Hoje:{p:'pHoje',n:'nbHoje'},Aulas:{p:'pAulas',n:'nbAulas'},Questoes:{p:'pQuestoes',n:'nbQuestoes'},Stats:{p:'pStats',n:'nbStats'},Plano:{p:'pPlano',n:'nbPlano'}};
