@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>R+ Study</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.0/dist/chart.umd.js" integrity="sha384-iU8HYtnGQ8Cy4zl7gbNMOhsDTTKX02BTXptVP/vqAWiaTfM7isw76iyZCsjL2eVi" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/dexie@4/dist/dexie.min.js" crossorigin="anonymous"></script>
 <style>
 :root{color-scheme:light;--p:#6366f1;--pd:#4f46e5;--pl:#eef2ff;--s:#10b981;--sl:#d1fae5;--w:#f59e0b;--wl:#fef3c7;--d:#ef4444;--dl:#fee2e2;--q:#8b5cf6;--ql:#f5f3ff;--bg:#f1f5f9;--card:#fff;--t:#1e293b;--t2:#64748b;--t3:#cbd5e1;--bd:#e2e8f0;--r:14px}
 *{box-sizing:border-box;margin:0;padding:0}
@@ -127,6 +128,40 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sa
 .pf{margin-bottom:12px}
 .pl{font-size:11px;font-weight:700;color:var(--t2);text-transform:uppercase;letter-spacing:.4px;margin-bottom:5px}
 .hint{font-size:12px;color:var(--t2);padding:8px 11px;background:var(--bg);border-radius:9px}
+
+/* MODAL (bottom sheet) */
+.modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:150;align-items:flex-end;justify-content:center}
+.modal.on{display:flex}
+.msheet{background:#fff;border-radius:20px 20px 0 0;padding:18px 18px 22px;width:100%;max-width:520px;max-height:90vh;overflow-y:auto}
+.mhandle{width:36px;height:4px;background:var(--bd);border-radius:2px;margin:0 auto 13px}
+.mtitle{font-size:15px;font-weight:800;margin-bottom:5px}
+.msub{font-size:12px;color:var(--t2);margin-bottom:13px;line-height:1.4}
+.macts{display:flex;gap:8px;margin-top:14px}
+.fld{margin-bottom:10px}
+.fld label{display:block;font-size:10px;font-weight:800;color:var(--t2);text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px}
+.frow2{display:flex;gap:8px}
+.frow2>.fld{flex:1}
+
+/* HISTORY LIST */
+.hl{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--bd);cursor:pointer}
+.hl:last-child{border-bottom:none}
+.hl-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0}
+.hl-info{flex:1;min-width:0}
+.hl-t{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hl-s{font-size:11px;color:var(--t2);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hl-del{background:none;border:none;color:var(--t3);font-size:15px;cursor:pointer;padding:4px;flex-shrink:0}
+.hl-del:hover{color:var(--d)}
+
+/* HEATMAP */
+.hm{display:grid;grid-auto-flow:column;grid-template-rows:repeat(7,1fr);gap:3px;overflow-x:auto;padding-bottom:4px}
+.hm-c{width:13px;height:13px;border-radius:3px;background:#eef2f7}
+.hm-legend{display:flex;align-items:center;gap:4px;font-size:10px;color:var(--t2);margin-top:8px;justify-content:flex-end}
+.disc-row{margin-bottom:11px}
+.disc-head{display:flex;justify-content:space-between;font-size:12px;font-weight:700;margin-bottom:4px}
+.streak-grid{display:flex;gap:8px}
+.streak-box{flex:1;text-align:center;background:var(--bg);border-radius:11px;padding:11px 6px}
+.streak-n{font-size:22px;font-weight:900;line-height:1}
+.streak-l{font-size:9px;color:var(--t2);text-transform:uppercase;letter-spacing:.3px;margin-top:3px}
 
 /* ONBOARDING */
 #ob{position:fixed;inset:0;background:#fff;z-index:200;overflow:hidden}
@@ -374,6 +409,14 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sa
       </div>
 
       <div class="card">
+        <div class="ctitle" style="color:var(--p);display:flex;justify-content:space-between;align-items:center">
+          <span>📝 Aulas registradas</span>
+          <button class="btn btn-p btn-sm" onclick="openLessonModal()">+ Registrar aula</button>
+        </div>
+        <div id="lessonHist"></div>
+      </div>
+
+      <div class="card">
         <div class="ctitle" style="color:var(--p)">📅 Esta semana</div>
         <div class="pwrap"><div class="pfill" id="aWeekBar" style="background:var(--p);width:0%"></div></div>
         <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--t2);margin-bottom:10px">
@@ -586,6 +629,29 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sa
   </nav>
 </div>
 
+<!-- MODAL: registrar/editar aula -->
+<div class="modal" id="lmod">
+  <div class="msheet">
+    <div class="mhandle"></div>
+    <div class="mtitle" id="lmodTitle">📝 Registrar aula</div>
+    <div class="msub">Detalhe uma aula específica. Os contadores rápidos (+1/+2/+3/+5) continuam funcionando normalmente.</div>
+    <div class="frow2">
+      <div class="fld"><label>Data</label><input type="date" class="inp inp-sm" id="lfDate"></div>
+      <div class="fld" style="max-width:96px"><label>Nº da aula</label><input type="number" class="inp inp-sm" id="lfNum" min="0" placeholder="12"></div>
+    </div>
+    <div class="fld"><label>Disciplina</label><input type="text" class="inp inp-sm" id="lfDisc" placeholder="Ex.: Cardiologia" list="discList" autocomplete="off"><datalist id="discList"></datalist></div>
+    <div class="fld"><label>Nome da aula</label><input type="text" class="inp inp-sm" id="lfNome" placeholder="Ex.: Insuficiência Cardíaca"></div>
+    <div class="frow2">
+      <div class="fld" style="max-width:130px"><label>Duração (min)</label><input type="number" class="inp inp-sm" id="lfDur" min="0" placeholder="opcional"></div>
+      <div class="fld"><label>Observações</label><input type="text" class="inp inp-sm" id="lfObs" placeholder="opcional"></div>
+    </div>
+    <div class="macts">
+      <button class="btn btn-o" style="flex:1" onclick="closeLessonModal()">Cancelar</button>
+      <button class="btn btn-p" style="flex:2" id="lmodSave" onclick="saveLessonModal()">Salvar</button>
+    </div>
+  </div>
+</div>
+
 <script>
 // ═══ DATA ═══
 const SK='rplus7';
@@ -602,7 +668,99 @@ function def(){return{
   weekStart:mondayStr(),firstWeek:mondayStr()
 };}
 let D=(()=>{try{const r=localStorage.getItem(SK);return r?Object.assign(def(),JSON.parse(r)):def();}catch(e){return def();}})();
-const save=()=>localStorage.setItem(SK,JSON.stringify(D));
+const save=()=>{localStorage.setItem(SK,JSON.stringify(D));try{if(typeof Store!=='undefined'&&Store.ready)Store.setSetting('appState',D);}catch(e){}};
+
+// ═══ STORE: persistência estruturada (IndexedDB via Dexie; fallback localStorage) ═══
+const Store=(()=>{
+  const LSK={lessons:'rplus7_lessons',questions:'rplus7_questions',meta:'rplus7_store_meta'};
+  let db=null,mode='ls',ready=false;
+  const now=()=>Date.now();
+  const lsGet=k=>{try{return JSON.parse(localStorage.getItem(k)||'[]');}catch(e){return[];}};
+  const lsSet=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}};
+  const meta=()=>{try{return JSON.parse(localStorage.getItem(LSK.meta)||'{}');}catch(e){return{};}};
+  const setMeta=m=>{try{localStorage.setItem(LSK.meta,JSON.stringify(m));}catch(e){}};
+  function nextId(field){const m=meta();const id=m[field]||1;m[field]=id+1;setMeta(m);return id;}
+
+  async function init(){
+    try{
+      if(typeof Dexie==='undefined')throw new Error('Dexie indisponível');
+      db=new Dexie('rplusDB');
+      db.version(1).stores({
+        lessonsHistory:'++id, date, disciplina, numero, createdAt',
+        questionsHistory:'++id, date, createdAt',
+        weeklySnapshots:'++id, &weekKey',
+        settings:'&key',
+        streaks:'&key'
+      });
+      await db.open();
+      mode='idb';
+    }catch(e){mode='ls';}
+    try{await migrate();}catch(e){}
+    ready=true;
+    return mode;
+  }
+
+  // ── Aulas granulares ──
+  async function addLesson(o){
+    const rec=Object.assign({date:today(),disciplina:'Geral',nome:'',numero:null,duracao:null,obs:'',createdAt:now(),updatedAt:now(),timestamp:now()},o);
+    if(mode==='idb'){rec.id=await db.lessonsHistory.add(rec);}
+    else{const a=lsGet(LSK.lessons);rec.id=nextId('lid');a.push(rec);lsSet(LSK.lessons,a);}
+    return rec;
+  }
+  async function updateLesson(id,patch){
+    patch=Object.assign({},patch,{updatedAt:now()});
+    if(mode==='idb'){await db.lessonsHistory.update(id,patch);}
+    else{const a=lsGet(LSK.lessons),i=a.findIndex(x=>x.id===id);if(i>=0){a[i]=Object.assign(a[i],patch);lsSet(LSK.lessons,a);}}
+  }
+  async function deleteLesson(id){
+    if(mode==='idb'){await db.lessonsHistory.delete(id);}
+    else{lsSet(LSK.lessons,lsGet(LSK.lessons).filter(x=>x.id!==id));}
+  }
+  async function getLessons(){
+    let a=mode==='idb'?await db.lessonsHistory.toArray():lsGet(LSK.lessons);
+    return a.sort((x,y)=>(''+y.date).localeCompare(''+x.date)||(y.createdAt-x.createdAt));
+  }
+
+  // ── Questões granulares (sessões) ──
+  async function addQuestionRec(o){
+    const rec=Object.assign({date:today(),n:0,disciplina:'Geral',createdAt:now(),updatedAt:now(),timestamp:now()},o);
+    if(mode==='idb'){rec.id=await db.questionsHistory.add(rec);}
+    else{const a=lsGet(LSK.questions);rec.id=nextId('qid');a.push(rec);lsSet(LSK.questions,a);}
+    return rec;
+  }
+  async function getQuestions(){return mode==='idb'?await db.questionsHistory.toArray():lsGet(LSK.questions);}
+
+  // ── Settings / Streaks ──
+  async function setSetting(key,value){
+    if(mode==='idb'){try{await db.settings.put({key,value,updatedAt:now()});}catch(e){}}
+    else{const m=meta();m['set_'+key]=value;setMeta(m);}
+  }
+  async function getSetting(key){
+    if(mode==='idb'){const r=await db.settings.get(key);return r?r.value:undefined;}
+    return meta()['set_'+key];
+  }
+  async function putSnapshot(weekKey,obj){
+    const rec=Object.assign({weekKey,createdAt:now(),updatedAt:now()},obj);
+    if(mode==='idb'){try{await db.weeklySnapshots.put(rec);}catch(e){}}
+    else{const m=meta();m.snaps=m.snaps||{};m.snaps[weekKey]=rec;setMeta(m);}
+  }
+
+  // ── Migração idempotente do localStorage antigo ──
+  async function migrate(){
+    const m=meta();
+    if(m.migratedV1)return;
+    await setSetting('appState',D);
+    const tasks=[];
+    Object.entries(D.questLog||{}).forEach(([date,n])=>{if((+n||0)>0)tasks.push(addQuestionRec({date,n:+n,disciplina:'Importado'}));});
+    (D.weekHistory||[]).forEach((h,i)=>tasks.push(putSnapshot('A'+(h.label||i),{tipo:'aulas',label:h.label,n:h.n})));
+    (D.qWeekHistory||[]).forEach((h,i)=>tasks.push(putSnapshot('Q'+(h.label||i),{tipo:'questoes',label:h.label,n:h.n})));
+    await Promise.all(tasks);
+    m.migratedV1=true;setMeta(m);
+  }
+
+  return {init,addLesson,updateLesson,deleteLesson,getLessons,addQuestionRec,getQuestions,setSetting,getSetting,putSnapshot,
+    get mode(){return mode;},get ready(){return ready;}};
+})();
 
 // ═══ LOG HELPERS ═══
 const sumLog=(log,from)=>Object.entries(log).filter(([d])=>!from||d>=from).reduce((s,[,n])=>s+(+n||0),0);
@@ -704,6 +862,7 @@ function launchApp(){
   document.getElementById('ob').style.display='none';
   document.getElementById('app').classList.add('on');
   checkWeekReset();renderAll();
+  Store.init().then(()=>{if(typeof onStoreReady==='function')onStoreReady();}).catch(()=>{});
 }
 function renderAll(){renderHeader();renderToday();renderAulas();renderQuestoes();renderStats();renderPlan();}
 
@@ -809,6 +968,7 @@ function renderAulas(){
   document.getElementById('aMonthPct').textContent=mpct+'%';
   renderProj('projAulas',false);
   renderAHistChart();
+  renderLessonHist();
 }
 function addAHist(){
   const v=+document.getElementById('aHistInp').value;if(isNaN(v)||v<0)return;
@@ -928,6 +1088,82 @@ function updPSum(){
   if(x.wl===null){el.textContent='Configure a data da prova para ver o plano.';return;}
   el.textContent=`${x.wl} semanas · ${x.rem} aulas restantes · necessário ${x.req}/sem · ${Math.round((aulaGoal()*D.lessonMin)/60*10)/10}h de estudo/sem`;
 }
+
+// ═══ HELPERS UI ═══
+function esc(s){return(''+(s==null?'':s)).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function fmtBR(d){if(!d)return'';const p=(''+d).split('-');return p.length===3?`${p[2]}/${p[1]}/${p[0]}`:''+d;}
+const DISC_PAL=['#6366f1','#8b5cf6','#10b981','#f59e0b','#ef4444','#06b6d4','#f97316','#ec4899','#14b8a6','#a855f7'];
+const _discColors={};let _discIdx=0;
+function discColor(name){name=name||'Geral';if(!_discColors[name])_discColors[name]=DISC_PAL[_discIdx++%DISC_PAL.length];return _discColors[name];}
+
+// ═══ AULAS GRANULARES (modal) ═══
+let editingLessonId=null,editingLessonOldDate=null;
+function openLessonModal(rec){
+  editingLessonId=rec?rec.id:null;editingLessonOldDate=rec?rec.date:null;
+  document.getElementById('lmodTitle').textContent=rec?'✏️ Editar aula':'📝 Registrar aula';
+  document.getElementById('lfDate').value=rec?rec.date:today();
+  document.getElementById('lfDisc').value=rec?(rec.disciplina||''):'';
+  document.getElementById('lfNome').value=rec?(rec.nome||''):'';
+  document.getElementById('lfNum').value=(rec&&rec.numero!=null)?rec.numero:'';
+  document.getElementById('lfDur').value=(rec&&rec.duracao!=null)?rec.duracao:'';
+  document.getElementById('lfObs').value=rec?(rec.obs||''):'';
+  fillDiscList();
+  document.getElementById('lmod').classList.add('on');
+}
+function closeLessonModal(){document.getElementById('lmod').classList.remove('on');editingLessonId=null;editingLessonOldDate=null;}
+async function openLessonFromHist(id){try{const all=await Store.getLessons();const r=all.find(x=>x.id===id);if(r)openLessonModal(r);}catch(e){}}
+async function saveLessonModal(){
+  const date=document.getElementById('lfDate').value||today();
+  const disciplina=(document.getElementById('lfDisc').value||'').trim()||'Geral';
+  const nome=document.getElementById('lfNome').value.trim();
+  const numV=document.getElementById('lfNum').value,durV=document.getElementById('lfDur').value;
+  const numero=numV!==''?+numV:null,duracao=durV!==''?+durV:null;
+  const obs=document.getElementById('lfObs').value.trim();
+  try{
+    if(editingLessonId!=null){
+      await Store.updateLesson(editingLessonId,{date,disciplina,nome,numero,duracao,obs});
+      if(editingLessonOldDate&&editingLessonOldDate!==date){
+        D.aulaLog[editingLessonOldDate]=Math.max(0,(D.aulaLog[editingLessonOldDate]||0)-1);
+        D.aulaLog[date]=(D.aulaLog[date]||0)+1;save();
+      }
+    }else{
+      await Store.addLesson({date,disciplina,nome,numero,duracao,obs});
+      D.aulaLog[date]=(D.aulaLog[date]||0)+1;save();
+    }
+  }catch(e){}
+  closeLessonModal();renderAll();renderLessonHist();
+}
+async function deleteLessonRec(id,date){
+  if(!confirm('Remover esta aula registrada? O contador do dia será reduzido em 1.'))return;
+  try{await Store.deleteLesson(id);}catch(e){}
+  D.aulaLog[date]=Math.max(0,(D.aulaLog[date]||0)-1);save();
+  renderAll();renderLessonHist();
+}
+async function fillDiscList(){
+  const dl=document.getElementById('discList');if(!dl||!Store.ready)return;
+  try{const all=await Store.getLessons();const set=[...new Set(all.map(r=>r.disciplina).filter(Boolean))];
+  dl.innerHTML=set.map(d=>`<option value="${esc(d)}">`).join('');}catch(e){}
+}
+async function renderLessonHist(){
+  const el=document.getElementById('lessonHist');if(!el)return;
+  if(typeof Store==='undefined'||!Store.ready){el.innerHTML='<div style="font-size:12px;color:var(--t2);padding:6px 0">Carregando histórico…</div>';return;}
+  let all=[];try{all=await Store.getLessons();}catch(e){}
+  if(!all.length){el.innerHTML='<div style="font-size:12px;color:var(--t2);padding:6px 0;line-height:1.5">Nenhuma aula detalhada ainda. Toque em <strong>“+ Registrar aula”</strong> para guardar disciplina, número e observações.<br>Os contadores rápidos continuam normais.</div>';return;}
+  const recent=all.slice(0,15);
+  el.innerHTML=recent.map(r=>{
+    const col=discColor(r.disciplina);
+    const t=(r.disciplina||'Geral')+(r.numero!=null?' — Aula '+r.numero:'')+(r.nome?': '+r.nome:'');
+    const sub=fmtBR(r.date)+(r.duracao?' · '+r.duracao+' min':'')+(r.obs?' · '+r.obs:'');
+    return `<div class="hl" onclick="openLessonFromHist(${r.id})">
+      <div class="hl-dot" style="background:${col}"></div>
+      <div class="hl-info"><div class="hl-t">${esc(t)}</div><div class="hl-s">${esc(sub)}</div></div>
+      <button class="hl-del" onclick="event.stopPropagation();deleteLessonRec(${r.id},'${r.date}')">✕</button>
+    </div>`;
+  }).join('')+(all.length>15?`<div style="font-size:11px;color:var(--t2);text-align:center;padding-top:8px">+${all.length-15} mais no histórico completo</div>`:'');
+}
+
+// chamado quando o Store/IndexedDB termina de inicializar
+function onStoreReady(){renderLessonHist();fillDiscList();}
 
 // ═══ TABS ═══
 const TABS={Hoje:{p:'pHoje',n:'nbHoje'},Aulas:{p:'pAulas',n:'nbAulas'},Questoes:{p:'pQuestoes',n:'nbQuestoes'},Stats:{p:'pStats',n:'nbStats'},Plano:{p:'pPlano',n:'nbPlano'}};
