@@ -1,0 +1,945 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>R+ Study</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.0/dist/chart.umd.js" integrity="sha384-iU8HYtnGQ8Cy4zl7gbNMOhsDTTKX02BTXptVP/vqAWiaTfM7isw76iyZCsjL2eVi" crossorigin="anonymous"></script>
+<style>
+:root{color-scheme:light;--p:#6366f1;--pd:#4f46e5;--pl:#eef2ff;--s:#10b981;--sl:#d1fae5;--w:#f59e0b;--wl:#fef3c7;--d:#ef4444;--dl:#fee2e2;--q:#8b5cf6;--ql:#f5f3ff;--bg:#f1f5f9;--card:#fff;--t:#1e293b;--t2:#64748b;--t3:#cbd5e1;--bd:#e2e8f0;--r:14px}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--t);overflow:hidden}
+#app{display:none;flex-direction:column;height:100vh}
+#app.on{display:flex}
+
+/* HEADER */
+.hdr{background:linear-gradient(135deg,#4338ca,#7c3aed);color:#fff;padding:12px 18px 9px;flex-shrink:0}
+.hdr-row{display:flex;justify-content:space-between;align-items:center}
+.hdr-title{font-size:18px;font-weight:900}
+.hdr-sub{font-size:10px;opacity:.65;margin-top:1px}
+.chip{background:rgba(255,255,255,.15);border-radius:14px;padding:5px 13px;text-align:center;cursor:pointer}
+.chip-n{font-size:24px;font-weight:900;line-height:1}
+.chip-l{font-size:9px;opacity:.7;text-transform:uppercase;letter-spacing:.5px}
+.hdr-bar{display:flex;align-items:center;gap:8px;margin-top:8px}
+.rpill{padding:3px 10px;border-radius:20px;font-size:10px;font-weight:800;text-transform:uppercase;white-space:nowrap}
+.r-low{background:#d1fae5;color:#065f46}.r-med{background:#fef3c7;color:#92400e}.r-hi{background:#fee2e2;color:#991b1b}
+.hprog{flex:1;height:4px;background:rgba(255,255,255,.2);border-radius:2px;overflow:hidden}
+.hprog-f{height:100%;background:#fff;border-radius:2px;transition:width .6s}
+.hdr-right{font-size:10px;opacity:.75;white-space:nowrap}
+
+/* CONTENT */
+.content{flex:1;overflow-y:auto;overflow-x:hidden}
+.pane{display:none;padding:13px 15px 20px}
+.pane.on{display:block}
+
+/* BOTTOM NAV (5 items) */
+.bnav{display:flex;background:#fff;border-top:1px solid var(--bd);flex-shrink:0}
+.nb{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:8px 3px;background:none;border:none;cursor:pointer;color:var(--t2);font-size:9px;font-weight:700;gap:2px;transition:color .15s;min-width:0}
+.nb .ni{font-size:20px;line-height:1}
+.nb.on{color:var(--p)}
+
+/* CARDS */
+.card{background:var(--card);border-radius:var(--r);padding:14px 15px;margin-bottom:10px;box-shadow:0 1px 3px rgba(0,0,0,.06)}
+.ctitle{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.6px;color:var(--t2);margin-bottom:10px}
+
+/* MISSION */
+.mission{background:linear-gradient(135deg,#4338ca,#7c3aed);color:#fff;border-radius:var(--r);padding:14px;margin-bottom:10px}
+.ms-tag{font-size:10px;font-weight:700;opacity:.75;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px}
+.ms-title{font-size:15px;font-weight:800;margin-bottom:11px}
+.ms-item{display:flex;align-items:center;gap:9px;background:rgba(255,255,255,.14);border-radius:9px;padding:9px 11px;margin-bottom:6px;cursor:pointer}
+.ms-item:last-child{margin-bottom:0}
+.ms-cb{width:21px;height:21px;border-radius:50%;border:2px solid rgba(255,255,255,.5);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:11px;transition:all .2s}
+.ms-cb.chk{background:rgba(255,255,255,.9);color:var(--p);border-color:transparent}
+.ms-txt{font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* RHYTHM CARD */
+.rhythm-card{background:var(--pl);border-radius:var(--r);padding:12px 14px;margin-bottom:10px;border:1.5px solid #c7d2fe}
+.rc-title{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:var(--p);margin-bottom:8px}
+.rc-row{display:flex;align-items:center;gap:10px}
+.rc-label{font-size:12px;color:var(--t2);flex:1}
+.rc-ctrl{display:flex;align-items:center;gap:8px}
+.rc-btn{width:30px;height:30px;border-radius:50%;border:1.5px solid #c7d2fe;background:#fff;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--p);font-weight:700;transition:all .15s}
+.rc-btn:hover{background:var(--p);color:#fff;border-color:var(--p)}
+.rc-val{font-size:20px;font-weight:900;color:var(--p);min-width:28px;text-align:center}
+.rc-hint{font-size:11px;color:var(--t2);margin-top:6px}
+
+/* STATS GRID */
+.sg{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px}
+.sg3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:10px}
+.sc{background:#fff;border-radius:11px;padding:12px;box-shadow:0 1px 2px rgba(0,0,0,.05)}
+.sl{font-size:10px;font-weight:700;color:var(--t2);text-transform:uppercase;letter-spacing:.4px;margin-bottom:3px}
+.sv{font-size:24px;font-weight:900;line-height:1}
+.ss{font-size:11px;color:var(--t2);margin-top:2px}
+
+/* RING */
+.ring-svg{transform:rotate(-90deg)}
+.ring-bg{fill:none;stroke:var(--bd)}
+.ring-fill{fill:none;stroke-linecap:round;transition:stroke-dashoffset .6s ease}
+.ring-lbl{text-anchor:middle;dominant-baseline:middle}
+.wring{display:flex;align-items:center;gap:12px}
+
+/* LESSON / QUESTION ITEMS */
+.li{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--bd);cursor:pointer}
+.li:last-child{border-bottom:none}
+.li.dn{opacity:.42}
+.lcb{width:25px;height:25px;border-radius:50%;border:2px solid var(--t3);background:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0;transition:all .2s}
+.lcb.chk{background:var(--s);border-color:var(--s);color:#fff}
+.linfo{flex:1;min-width:0}
+.ltitle{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.li.dn .ltitle{text-decoration:line-through;color:var(--t2)}
+.ltag{display:inline-block;font-size:10px;font-weight:700;padding:2px 7px;border-radius:10px;margin-top:2px;background:var(--pl);color:var(--p)}
+.ldel{background:none;border:none;cursor:pointer;color:var(--t3);font-size:15px;padding:4px;flex-shrink:0}
+.ldel:hover{color:var(--d)}
+
+/* QUESTOES TAB */
+.q-counter{text-align:center;padding:20px 0 14px}
+.q-num{font-size:64px;font-weight:900;color:var(--q);line-height:1}
+.q-label{font-size:13px;color:var(--t2);margin-top:4px}
+.q-btns{display:flex;gap:8px;justify-content:center;margin-top:14px;flex-wrap:wrap}
+.q-btn{padding:10px 18px;border-radius:11px;font-size:14px;font-weight:800;cursor:pointer;border:none;transition:all .15s}
+.q-btn:active{transform:scale(.95)}
+.qb-add{background:var(--q);color:#fff}
+.qb-sub{background:var(--ql);color:var(--q)}
+.qb-preset{background:var(--ql);color:var(--q)}
+
+/* WEEK SUMMARY */
+.week-summary{display:flex;justify-content:space-around;padding:12px 0;border-top:1px solid var(--bd);border-bottom:1px solid var(--bd);margin:10px 0}
+.ws-item{text-align:center}
+.ws-n{font-size:20px;font-weight:900}
+.ws-l{font-size:10px;color:var(--t2);text-transform:uppercase;letter-spacing:.4px;margin-top:2px}
+
+/* PROGRESS BAR */
+.pwrap{background:#e2e8f0;border-radius:5px;height:8px;overflow:hidden;margin:7px 0}
+.pfill{height:100%;border-radius:5px;transition:width .6s}
+
+/* INPUTS */
+.inp{width:100%;padding:10px 13px;border:1.5px solid var(--bd);border-radius:11px;font-size:14px;outline:none;color:var(--t);background:#fff;font-family:inherit}
+.inp:focus{border-color:var(--p)}
+.inp-sm{padding:8px 11px;font-size:13px;border-radius:9px}
+.search-wrap{position:relative;margin-bottom:10px}
+.search-wrap .si{position:absolute;left:11px;top:50%;transform:translateY(-50%);font-size:14px;color:var(--t2)}
+.sinp{padding-left:34px}
+
+/* FILTERS */
+.frow{display:flex;gap:5px;margin-bottom:10px;overflow-x:auto;padding-bottom:2px}
+.fc{padding:5px 11px;border-radius:20px;font-size:12px;font-weight:700;border:1.5px solid var(--bd);background:#fff;color:var(--t2);cursor:pointer;white-space:nowrap;transition:all .15s}
+.fc.on{background:var(--p);border-color:var(--p);color:#fff}
+.fc.qon{background:var(--q);border-color:var(--q);color:#fff}
+
+/* ADD BAR */
+.abar{display:flex;gap:6px;margin-bottom:10px}
+
+/* BTNS */
+.btn{padding:9px 15px;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;border:none;transition:opacity .2s,transform .1s}
+.btn:active{transform:scale(.97)}
+.btn-p{background:var(--p);color:#fff}
+.btn-q{background:var(--q);color:#fff}
+.btn-s{background:var(--s);color:#fff}
+.btn-o{background:transparent;border:1.5px solid var(--bd);color:var(--t2)}
+.btn-o:hover{border-color:var(--p);color:var(--p)}
+.btn-sm{padding:7px 11px;font-size:12px;border-radius:8px}
+
+/* BULK MODAL */
+#bmod{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:100;align-items:flex-end;justify-content:center}
+#bmod.on{display:flex}
+.msheet{background:#fff;border-radius:20px 20px 0 0;padding:18px;width:100%;max-width:520px}
+.mhandle{width:36px;height:4px;background:var(--bd);border-radius:2px;margin:0 auto 13px}
+.mtitle{font-size:15px;font-weight:800;margin-bottom:5px}
+.msub{font-size:12px;color:var(--t2);margin-bottom:11px}
+.mta{width:100%;height:180px;border:1.5px solid var(--bd);border-radius:11px;padding:11px;font-size:13px;color:var(--t);outline:none;resize:none;font-family:inherit;line-height:1.6}
+.mta:focus{border-color:var(--p)}
+.macts{display:flex;gap:8px;margin-top:10px}
+
+/* DECISION */
+.dm{border-radius:10px;padding:10px 12px;margin-bottom:7px}
+.dm.del{background:var(--wl);border-left:3px solid var(--w)}
+.dm.ahd{background:var(--sl);border-left:3px solid var(--s)}
+.dm.crit{background:var(--dl);border-left:3px solid var(--d)}
+.dm.tod{background:var(--pl);border-left:3px solid var(--p)}
+.dm.qsty{background:var(--ql);border-left:3px solid var(--q)}
+.dh{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.4px;margin-bottom:5px}
+.di{font-size:12px;padding:2px 0;display:flex;gap:5px;line-height:1.5}
+.da{color:var(--p);font-weight:800;flex-shrink:0}
+.da-q{color:var(--q);font-weight:800;flex-shrink:0}
+
+/* CHART */
+.cwrap{position:relative;height:155px}
+
+/* PLAN */
+.pf{margin-bottom:12px}
+.pl{font-size:11px;font-weight:700;color:var(--t2);text-transform:uppercase;letter-spacing:.4px;margin-bottom:5px}
+.hint{font-size:12px;color:var(--t2);padding:8px 11px;background:var(--bg);border-radius:9px}
+
+/* ONBOARDING */
+#ob{position:fixed;inset:0;background:#fff;z-index:200;overflow:hidden}
+.ob-slides{display:flex;width:400%;transition:transform .4s cubic-bezier(.4,0,.2,1)}
+.ob-slide{width:25%;min-height:100vh;padding:32px 22px 100px;display:flex;flex-direction:column}
+.ob-emoji{font-size:50px;margin-bottom:12px}
+.ob-h{font-size:24px;font-weight:900;line-height:1.2;margin-bottom:6px}
+.ob-sub{font-size:14px;color:var(--t2);margin-bottom:20px;line-height:1.5}
+.ob-inp{width:100%;padding:13px 14px;border:2px solid var(--bd);border-radius:12px;font-size:15px;outline:none;color:var(--t);transition:border-color .2s;margin-bottom:10px;font-family:inherit}
+.ob-inp:focus{border-color:var(--p)}
+.ob-ta{width:100%;height:190px;border:2px solid var(--bd);border-radius:12px;padding:12px;font-size:13px;color:var(--t);outline:none;resize:none;font-family:inherit;line-height:1.6;margin-bottom:10px}
+.ob-ta:focus{border-color:var(--p)}
+.ob-hint{font-size:12px;color:var(--t2);padding:8px 11px;background:#f8fafc;border-radius:9px;margin-bottom:16px}
+.ob-row{display:flex;align-items:center;gap:12px;margin-bottom:14px}
+.ob-row input[type=range]{flex:1;accent-color:var(--p)}
+.ob-big{font-size:32px;font-weight:900;color:var(--p);min-width:42px;text-align:center}
+.ob-presets{display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px;margin-bottom:14px}
+.ob-presets button{border:1.5px solid var(--bd);background:#fff;border-radius:10px;padding:10px 6px;cursor:pointer;font-size:11px;line-height:1.4;font-family:inherit;transition:all .15s}
+.ob-presets button:hover{border-color:var(--p);color:var(--p)}
+.ob-bottom{position:fixed;bottom:0;left:0;right:0;background:#fff;padding:13px 20px 20px;border-top:1px solid var(--bd);display:flex;align-items:center;gap:9px}
+.ob-dots{display:flex;gap:5px;flex:1;justify-content:center}
+.od{width:7px;height:7px;border-radius:4px;background:var(--t3);transition:all .3s}
+.od.on{background:var(--p);width:18px}
+.ob-btn{padding:12px 20px;border-radius:12px;font-size:14px;font-weight:800;cursor:pointer;border:none;background:var(--p);color:#fff;min-width:110px}
+.ob-back{padding:12px 16px;border-radius:12px;font-size:13px;font-weight:700;cursor:pointer;border:1.5px solid var(--bd);background:#fff;color:var(--t2);display:none}
+
+@keyframes pop{0%,100%{transform:scale(1)}50%{transform:scale(1.3)}}
+.popping{animation:pop .25s ease}
+</style>
+</head>
+<body>
+
+<!-- ═══════════ ONBOARDING ═══════════ -->
+<div id="ob">
+  <div class="ob-slides" id="obSlides">
+
+    <!-- 1: Data -->
+    <div class="ob-slide">
+      <div class="ob-emoji">🗓️</div>
+      <div class="ob-h">Quando é sua prova R+?</div>
+      <div class="ob-sub">Com a data calculo o ritmo ideal e aviso quando o plano está em risco.</div>
+      <input type="date" class="ob-inp" id="obDate"/>
+      <div class="ob-hint">💡 A data está no edital do seu programa de residência</div>
+    </div>
+
+    <!-- 2: Aulas -->
+    <div class="ob-slide">
+      <div class="ob-emoji">📚</div>
+      <div class="ob-h">Cole as aulas do cursinho</div>
+      <div class="ob-sub">Uma aula por linha. Pode colar direto do PDF, planilha ou WhatsApp.</div>
+      <textarea class="ob-ta" id="obLessons" placeholder="Aula 1 - Cardiologia: Insuficiência Cardíaca&#10;Aula 2 - Cardiologia: Arritmias&#10;Aula 3 - Pneumologia: Asma&#10;Aula 4 - Pneumologia: DPOC&#10;Aula 5 - Nefrologia: IRA&#10;..."></textarea>
+      <div class="ob-hint">💡 Sem lista ainda? Pule — adicione depois na aba Aulas</div>
+    </div>
+
+    <!-- 3: Ritmo aulas -->
+    <div class="ob-slide">
+      <div class="ob-emoji">🎯</div>
+      <div class="ob-h">Ritmo semanal de aulas</div>
+      <div class="ob-sub">Quantas aulas por semana você planeja fazer? Seja realista com seus plantões.</div>
+      <div class="ob-row">
+        <input type="range" id="obGoal" min="1" max="20" value="6"
+          oninput="document.getElementById('obGoalN').textContent=this.value;obSum()"/>
+        <div class="ob-big" id="obGoalN">6</div>
+      </div>
+      <div class="ob-presets">
+        <button onclick="obSet('obGoal','obGoalN',3)">😴 Plantões pesados<br><strong>3/sem</strong></button>
+        <button onclick="obSet('obGoal','obGoalN',6)">⚡ Semana normal<br><strong>6/sem</strong></button>
+        <button onclick="obSet('obGoal','obGoalN',12)">🔥 Foco total<br><strong>12/sem</strong></button>
+      </div>
+      <div class="ob-hint">⏱ Cada aula = 40 min (ajuste depois no Plano)</div>
+    </div>
+
+    <!-- 4: Questões -->
+    <div class="ob-slide">
+      <div class="ob-emoji">❓</div>
+      <div class="ob-h">Meta de questões por semana</div>
+      <div class="ob-sub">Quantas questões você quer fazer por semana? Pode ajustar depois.</div>
+      <div class="ob-row">
+        <input type="range" id="obQGoal" min="10" max="500" step="10" value="100"
+          oninput="document.getElementById('obQGoalN').textContent=this.value;obSum()"/>
+        <div class="ob-big" id="obQGoalN">100</div>
+      </div>
+      <div class="ob-presets">
+        <button onclick="obSet('obQGoal','obQGoalN',50)">😴 Leve<br><strong>50/sem</strong></button>
+        <button onclick="obSet('obQGoal','obQGoalN',100)">⚡ Regular<br><strong>100/sem</strong></button>
+        <button onclick="obSet('obQGoal','obQGoalN',200)">🔥 Intenso<br><strong>200/sem</strong></button>
+      </div>
+      <div class="ob-hint" id="obSumTxt">—</div>
+    </div>
+  </div>
+
+  <div class="ob-bottom">
+    <button class="ob-back" id="obBackBtn" onclick="obBack()">← Voltar</button>
+    <div class="ob-dots">
+      <div class="od on" id="od0"></div><div class="od" id="od1"></div>
+      <div class="od" id="od2"></div><div class="od" id="od3"></div>
+    </div>
+    <button class="ob-btn" id="obNextBtn" onclick="obNext()">Continuar →</button>
+  </div>
+</div>
+
+<!-- ═══════════ APP ═══════════ -->
+<div id="app">
+  <div class="hdr">
+    <div class="hdr-row">
+      <div>
+        <div class="hdr-title" id="hTitle">📚 R+</div>
+        <div class="hdr-sub" id="hSub">Motor de decisão</div>
+      </div>
+      <div class="chip" onclick="goTab('Plano')" title="Ir para configurações">
+        <div class="chip-n" id="hDias">—</div>
+        <div class="chip-l">dias</div>
+      </div>
+    </div>
+    <div class="hdr-bar">
+      <div class="rpill" id="rPill">—</div>
+      <div class="hprog"><div class="hprog-f" id="hProgF" style="width:0%"></div></div>
+      <div class="hdr-right" id="hRight">—</div>
+    </div>
+  </div>
+
+  <div class="content" id="content">
+
+    <!-- ══ TAB: HOJE ══ -->
+    <div class="pane on" id="pHoje">
+      <div class="mission" id="mCard">
+        <div class="ms-tag">🎯 Missão de hoje</div>
+        <div class="ms-title" id="msTitle">—</div>
+        <div id="msItems"></div>
+      </div>
+
+      <!-- RITMO DESTA SEMANA -->
+      <div class="rhythm-card">
+        <div class="rc-title">⚡ Ritmo desta semana</div>
+        <div class="rc-row">
+          <div class="rc-label">Aulas — meta ajustada</div>
+          <div class="rc-ctrl">
+            <button class="rc-btn" onclick="adjGoal(-1)">−</button>
+            <div class="rc-val" id="rcGoal">6</div>
+            <button class="rc-btn" onclick="adjGoal(+1)">+</button>
+          </div>
+        </div>
+        <div class="rc-row" style="margin-top:7px">
+          <div class="rc-label">Questões — meta ajustada</div>
+          <div class="rc-ctrl">
+            <button class="rc-btn" onclick="adjQGoal(-10)" style="color:var(--q);border-color:#ddd8fe">−</button>
+            <div class="rc-val" style="color:var(--q)" id="rcQGoal">100</div>
+            <button class="rc-btn" onclick="adjQGoal(+10)" style="color:var(--q);border-color:#ddd8fe">+</button>
+          </div>
+        </div>
+        <div class="rc-hint" id="rcHint">Redefine toda segunda-feira automaticamente</div>
+      </div>
+
+      <!-- PROGRESSO AULAS / QUESTÕES -->
+      <div class="sg">
+        <div class="card" style="margin-bottom:0">
+          <div class="ctitle" style="color:var(--p)">📚 Aulas</div>
+          <div class="wring">
+            <svg class="ring-svg" width="58" height="58" viewBox="0 0 58 58">
+              <circle class="ring-bg" cx="29" cy="29" r="22" stroke-width="7"/>
+              <circle class="ring-fill" id="wRingA" cx="29" cy="29" r="22" stroke-width="7"
+                stroke="#6366f1" stroke-dasharray="138.2" stroke-dashoffset="138.2"/>
+            </svg>
+            <div>
+              <div style="font-size:20px;font-weight:900"><span id="wDA">0</span>/<span id="wGA">—</span></div>
+              <div style="font-size:11px;color:var(--t2)">esta semana</div>
+              <div style="font-size:11px;color:var(--t2)">faltam: <strong id="wFA">—</strong></div>
+            </div>
+          </div>
+        </div>
+        <div class="card" style="margin-bottom:0">
+          <div class="ctitle" style="color:var(--q)">❓ Questões</div>
+          <div class="wring">
+            <svg class="ring-svg" width="58" height="58" viewBox="0 0 58 58">
+              <circle class="ring-bg" cx="29" cy="29" r="22" stroke-width="7"/>
+              <circle class="ring-fill" id="wRingQ" cx="29" cy="29" r="22" stroke-width="7"
+                stroke="#8b5cf6" stroke-dasharray="138.2" stroke-dashoffset="138.2"/>
+            </svg>
+            <div>
+              <div style="font-size:20px;font-weight:900"><span id="wDQ">0</span>/<span id="wGQ">—</span></div>
+              <div style="font-size:11px;color:var(--t2)">esta semana</div>
+              <div style="font-size:11px;color:var(--t2)">faltam: <strong id="wFQ">—</strong></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- STATS -->
+      <div class="sg3">
+        <div class="sc"><div class="sl">Aulas feitas</div><div class="sv" style="color:var(--s)" id="sDn">0</div><div class="ss" id="sDnS">de 0</div></div>
+        <div class="sc"><div class="sl">Progresso</div><div class="sv" style="color:var(--p)" id="sPg">0%</div><div class="ss">conteúdo</div></div>
+        <div class="sc"><div class="sl">Semanas</div><div class="sv" style="color:var(--w)" id="sSm">—</div><div class="ss">p/ prova</div></div>
+      </div>
+
+      <div class="card">
+        <div class="ctitle">🧠 O que fazer agora</div>
+        <div id="decToday"></div>
+      </div>
+    </div>
+
+    <!-- ══ TAB: AULAS ══ -->
+    <div class="pane" id="pAulas">
+      <div class="search-wrap">
+        <span class="si">🔍</span>
+        <input class="inp sinp" type="text" placeholder="Buscar aulas..." id="sInp" oninput="renderLessons()"/>
+      </div>
+      <div class="frow">
+        <div class="fc on" id="fAll" onclick="setFilter('all')">Todas</div>
+        <div class="fc" id="fPend" onclick="setFilter('pending')">Pendentes</div>
+        <div class="fc" id="fDone" onclick="setFilter('done')">Concluídas</div>
+      </div>
+      <div class="abar">
+        <input class="inp inp-sm" style="flex:1" type="text" id="addInp" placeholder="+ Nome da aula..."
+          onkeydown="if(event.key==='Enter')addLesson()"/>
+        <button class="btn btn-p btn-sm" onclick="addLesson()">Add</button>
+        <button class="btn btn-o btn-sm" onclick="openBulk()">📋 Lote</button>
+      </div>
+      <div id="lessonList"></div>
+    </div>
+
+    <!-- ══ TAB: QUESTÕES ══ -->
+    <div class="pane" id="pQuestoes">
+      <!-- Big counter -->
+      <div class="card">
+        <div class="ctitle" style="color:var(--q)">❓ Questões hoje</div>
+        <div class="q-counter">
+          <div class="q-num" id="qTodayN">0</div>
+          <div class="q-label">questões feitas hoje</div>
+        </div>
+        <div class="q-btns">
+          <button class="q-btn qb-sub" onclick="addQ(-1)">−1</button>
+          <button class="q-btn qb-add" onclick="addQ(1)">+1</button>
+          <button class="q-btn qb-preset" onclick="addQ(5)">+5</button>
+          <button class="q-btn qb-preset" onclick="addQ(10)">+10</button>
+          <button class="q-btn qb-preset" onclick="addQ(20)">+20</button>
+          <button class="q-btn qb-preset" onclick="addQ(50)">+50</button>
+        </div>
+      </div>
+
+      <!-- Ritmo questões -->
+      <div class="rhythm-card" style="background:var(--ql);border-color:#ddd8fe">
+        <div class="rc-title" style="color:var(--q)">❓ Ritmo de questões</div>
+        <div class="rc-row">
+          <div class="rc-label">Meta desta semana</div>
+          <div class="rc-ctrl">
+            <button class="rc-btn" style="color:var(--q);border-color:#ddd8fe" onclick="adjQGoal(-10)">−10</button>
+            <div class="rc-val" style="color:var(--q);font-size:17px" id="rcQGoal2">100</div>
+            <button class="rc-btn" style="color:var(--q);border-color:#ddd8fe" onclick="adjQGoal(+10)">+10</button>
+          </div>
+        </div>
+        <div class="rc-hint">Muda também no Hoje e em todo o app</div>
+      </div>
+
+      <!-- Week summary -->
+      <div class="card">
+        <div class="ctitle" style="color:var(--q)">📅 Esta semana</div>
+        <div class="pwrap"><div class="pfill" id="qWeekBar" style="background:var(--q);width:0%"></div></div>
+        <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--t2);margin-bottom:10px">
+          <span id="qWeekLabel">0 / 0 questões</span>
+          <span id="qWeekPct">0%</span>
+        </div>
+        <div class="week-summary">
+          <div class="ws-item"><div class="ws-n" style="color:var(--q)" id="qWTotal">0</div><div class="ws-l">feitas</div></div>
+          <div class="ws-item"><div class="ws-n" style="color:var(--w)" id="qWFalt">—</div><div class="ws-l">faltam</div></div>
+          <div class="ws-item"><div class="ws-n" style="color:var(--t2)" id="qWDia">—</div><div class="ws-l">por dia</div></div>
+        </div>
+      </div>
+
+      <!-- Decision questões -->
+      <div class="card">
+        <div class="ctitle" style="color:var(--q)">🧠 Motor — Questões</div>
+        <div id="decQ"></div>
+      </div>
+
+      <!-- Histórico -->
+      <div class="card">
+        <div class="ctitle">📈 Histórico semanal de questões</div>
+        <div class="cwrap"><canvas id="qHistChart"></canvas></div>
+        <div style="display:flex;gap:7px;margin-top:9px;align-items:center">
+          <input class="inp inp-sm" style="flex:1" type="number" id="qHistInp" min="0" placeholder="Questões semana passada"/>
+          <button class="btn btn-q btn-sm" onclick="addQHist()">+ Log</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ TAB: STATS ══ -->
+    <div class="pane" id="pStats">
+      <div class="card" style="text-align:center">
+        <div class="ctitle">📊 Progresso total — Aulas</div>
+        <svg class="ring-svg" style="margin:6px auto;display:block" width="120" height="120" viewBox="0 0 120 120">
+          <circle class="ring-bg" cx="60" cy="60" r="48" stroke-width="12"/>
+          <circle class="ring-fill" id="bigRing" cx="60" cy="60" r="48" stroke-width="12"
+            stroke="#6366f1" stroke-dasharray="301.6" stroke-dashoffset="301.6"/>
+          <text x="60" y="58" class="ring-lbl" font-size="24" font-weight="900" fill="#1e293b" id="bigPct">0%</text>
+          <text x="60" y="76" class="ring-lbl" font-size="11" fill="#94a3b8" id="bigSub">0 / 0</text>
+        </svg>
+      </div>
+      <div class="sg">
+        <div class="sc"><div class="sl">Aulas feitas</div><div class="sv" style="color:var(--s)" id="stDn">0</div></div>
+        <div class="sc"><div class="sl">Pendentes</div><div class="sv" style="color:var(--d)" id="stPd">0</div></div>
+        <div class="sc"><div class="sl">Meta/sem</div><div class="sv" style="color:var(--p)" id="stMt">—</div></div>
+        <div class="sc"><div class="sl">Ideal/sem</div><div class="sv" style="color:var(--w)" id="stId">—</div></div>
+      </div>
+      <div class="card">
+        <div class="ctitle">⏱ Carga de estudo estimada</div>
+        <div class="sg3" style="margin-bottom:0">
+          <div class="sc"><div class="sl">Por dia</div><div class="sv" style="color:var(--p);font-size:18px" id="stMin">—</div><div class="ss">min/dia</div></div>
+          <div class="sc"><div class="sl">Por semana</div><div class="sv" style="color:var(--p);font-size:18px" id="stSemH">—</div><div class="ss">horas/sem</div></div>
+          <div class="sc"><div class="sl">Cada aula</div><div class="sv" style="color:var(--t2);font-size:18px" id="stAulaMin">40</div><div class="ss">minutos</div></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="ctitle">📈 Histórico semanal — Aulas</div>
+        <div class="cwrap"><canvas id="histChart"></canvas></div>
+        <div style="display:flex;gap:7px;margin-top:9px;align-items:center">
+          <input class="inp inp-sm" style="flex:1" type="number" id="histInp" min="0" placeholder="Aulas semana passada"/>
+          <button class="btn btn-p btn-sm" onclick="addHist()">+ Log</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ TAB: PLANO ══ -->
+    <div class="pane" id="pPlano">
+      <div class="card">
+        <div class="ctitle">⚙ Configurações</div>
+        <div class="pf">
+          <div class="pl">📅 Data da Prova R+</div>
+          <input type="date" class="inp" id="pDate" onchange="savePlan()"/>
+        </div>
+        <div class="pf">
+          <div class="pl">🎯 Meta padrão de aulas/semana</div>
+          <div style="display:flex;align-items:center;gap:11px">
+            <input type="range" id="pSlider" min="1" max="20" style="flex:1;accent-color:var(--p)"
+              oninput="document.getElementById('pSliderN').textContent=this.value;savePlan()"/>
+            <div style="font-size:24px;font-weight:900;color:var(--p);min-width:34px;text-align:center" id="pSliderN">6</div>
+          </div>
+        </div>
+        <div class="pf">
+          <div class="pl">❓ Meta padrão de questões/semana</div>
+          <div style="display:flex;align-items:center;gap:11px">
+            <input type="range" id="pQSlider" min="10" max="500" step="10" style="flex:1;accent-color:var(--q)"
+              oninput="document.getElementById('pQSliderN').textContent=this.value;savePlan()"/>
+            <div style="font-size:24px;font-weight:900;color:var(--q);min-width:40px;text-align:center" id="pQSliderN">100</div>
+          </div>
+        </div>
+        <div class="pf">
+          <div class="pl">⏱ Duração de cada aula (min)</div>
+          <div style="display:flex;align-items:center;gap:11px">
+            <input type="range" id="pMinSlider" min="15" max="120" step="5" style="flex:1;accent-color:var(--t2)"
+              oninput="document.getElementById('pMinN').textContent=this.value;savePlan()"/>
+            <div style="font-size:24px;font-weight:900;color:var(--t2);min-width:44px;text-align:center" id="pMinN">40</div>
+          </div>
+        </div>
+        <div class="hint" id="pSum">—</div>
+      </div>
+      <div class="card">
+        <div class="ctitle">🧠 Motor de decisão completo</div>
+        <div id="decFull"></div>
+      </div>
+      <div class="card">
+        <div class="ctitle">🏆 Regra de Ouro</div>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <div style="display:flex;gap:7px;font-size:12px"><span>🔄</span><span>Dias perdidos fazem parte do sistema — não são falha</span></div>
+          <div style="display:flex;gap:7px;font-size:12px"><span>🎯</span><span>1 aula feita > 0 aulas planejadas e não feitas</span></div>
+          <div style="display:flex;gap:7px;font-size:12px"><span>⚡</span><span>Semana caótica? 1 aula + 10 questões no tema #1</span></div>
+          <div style="display:flex;gap:7px;font-size:12px"><span>📊</span><span>Consistência mínima viável > perfeição ocasional</span></div>
+          <div style="display:flex;gap:7px;font-size:12px"><span>🔁</span><span>Ajustar o ritmo é parte do método, não derrota</span></div>
+        </div>
+      </div>
+      <div class="card" style="border:1px solid #fca5a5">
+        <div class="ctitle" style="color:var(--d)">⚠ Reiniciar</div>
+        <div style="display:flex;gap:7px;flex-wrap:wrap">
+          <button class="btn btn-o btn-sm" onclick="resetWeek()">Resetar semana</button>
+          <button class="btn btn-sm" style="background:var(--dl);color:var(--d);border:none" onclick="resetAll()">Apagar tudo</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <nav class="bnav">
+    <button class="nb on" id="nbHoje" onclick="goTab('Hoje')"><span class="ni">🏠</span>Hoje</button>
+    <button class="nb" id="nbAulas" onclick="goTab('Aulas')"><span class="ni">📚</span>Aulas</button>
+    <button class="nb" id="nbQuestoes" onclick="goTab('Questoes')"><span class="ni">❓</span>Questões</button>
+    <button class="nb" id="nbStats" onclick="goTab('Stats')"><span class="ni">📊</span>Stats</button>
+    <button class="nb" id="nbPlano" onclick="goTab('Plano')"><span class="ni">⚙</span>Plano</button>
+  </nav>
+</div>
+
+<!-- BULK -->
+<div id="bmod">
+  <div class="msheet">
+    <div class="mhandle"></div>
+    <div class="mtitle">📋 Importar aulas em lote</div>
+    <div class="msub">Uma aula por linha. Pode colar direto do PDF, planilha ou WhatsApp.</div>
+    <textarea class="mta" id="mta" placeholder="Aula 1 - Cardiologia: IC&#10;Aula 2 - Arritmias&#10;..."></textarea>
+    <div class="macts">
+      <button class="btn btn-o" style="flex:1" onclick="closeBulk()">Cancelar</button>
+      <button class="btn btn-p" style="flex:2" onclick="importBulk()">Importar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ═══ DATA ═══
+const SK='rplus6';
+function def(){return{done:false,provaDate:'',goal:6,qGoal:100,lessonMin:40,weekGoalOverride:null,questGoalOverride:null,lessons:[],questLog:{},weekHistory:[],qWeekHistory:[],weekStart:monday(new Date()).toISOString().slice(0,10),nid:1};}
+let D=(()=>{try{const r=localStorage.getItem(SK);return r?JSON.parse(r):def();}catch(e){return def();}})();
+const save=()=>localStorage.setItem(SK,JSON.stringify(D));
+
+function monday(d){const x=new Date(d),dy=x.getDay();x.setDate(x.getDate()-dy+(dy===0?-6:1));return x;}
+const today=()=>new Date().toISOString().slice(0,10);
+
+// ═══ CALCS ═══
+const daysLeft=()=>D.provaDate?Math.ceil((new Date(D.provaDate)-new Date())/86400000):null;
+const weeksLeft=()=>{const d=daysLeft();return d!==null?Math.max(0,Math.ceil(d/7)):null;};
+const pctDone=()=>D.lessons.length?Math.round(D.lessons.filter(l=>l.done).length/D.lessons.length*100):0;
+const weekGoal=()=>D.weekGoalOverride!==null?D.weekGoalOverride:D.goal;
+const questGoal=()=>D.questGoalOverride!==null?D.questGoalOverride:D.qGoal;
+const weekLessDone=()=>D.lessons.filter(l=>l.done&&l.doneAt>=D.weekStart).length;
+const weekQDone=()=>Object.entries(D.questLog).filter(([d])=>d>=D.weekStart).reduce((s,[,n])=>s+n,0);
+const todayQ=()=>D.questLog[today()]||0;
+const pending=()=>D.lessons.filter(l=>!l.done).length;
+const idealLoad=()=>{const w=weeksLeft(),p=pending();return(w&&p)?Math.ceil(p/w):null;};
+function risk(){
+  const w=weeksLeft(),p=pctDone(),id=idealLoad();
+  if(!w)return'med';
+  if((w<4&&p<50)||(id&&id>weekGoal()*1.5))return'hi';
+  if(id&&id>weekGoal()*1.2)return'med';
+  return'low';
+}
+function extractTema(t){const m=t.match(/[-–:]\s*([^:\-–]+)/);return m?m[1].trim().split(/[:\-]/)[0].trim():'Geral';}
+function checkWeekReset(){
+  const cm=monday(new Date()).toISOString().slice(0,10);
+  if(D.weekStart!==cm){
+    D.weekHistory.push({label:'S'+(D.weekHistory.length+1),n:weekLessDone()});
+    D.qWeekHistory.push({label:'S'+(D.qWeekHistory.length+1),n:weekQDone()});
+    D.weekStart=cm;D.weekGoalOverride=null;D.questGoalOverride=null;save();
+  }
+}
+
+// ═══ ONBOARDING ═══
+let obStep=0;
+function obSet(sid,nid,v){document.getElementById(sid).value=v;document.getElementById(nid).textContent=v;obSum();}
+function obSum(){
+  const g=+document.getElementById('obGoal').value;
+  const qg=+document.getElementById('obQGoal').value;
+  const d=document.getElementById('obDate').value||D.provaDate;
+  if(!d){document.getElementById('obSumTxt').textContent='Configure a data no passo 1.';return;}
+  const w=Math.max(1,Math.ceil((new Date(d)-new Date())/(7*86400000)));
+  const ls=document.getElementById('obLessons')?.value.split('\n').filter(l=>l.trim()).length||D.lessons.length;
+  document.getElementById('obSumTxt').textContent=
+    `${w} semanas · ${g} aulas/sem · ${qg} questões/sem${ls?` · ${ls} aulas cadastradas`:''}`;
+}
+function obNext(){
+  if(obStep===0){const d=document.getElementById('obDate').value;if(!d){document.getElementById('obDate').style.borderColor='var(--d)';return;}D.provaDate=d;}
+  if(obStep===1){
+    const raw=document.getElementById('obLessons').value.trim();
+    if(raw)raw.split('\n').map(l=>l.trim()).filter(l=>l).forEach(title=>{
+      D.lessons.push({id:D.nid++,title,tema:extractTema(title),done:false,doneAt:null});
+    });
+  }
+  if(obStep===2){D.goal=+document.getElementById('obGoal').value||6;}
+  if(obStep===3){D.qGoal=+document.getElementById('obQGoal').value||100;D.done=true;save();launchApp();return;}
+  obStep++;obUI();save();
+}
+function obBack(){if(obStep>0){obStep--;obUI();}}
+function obUI(){
+  document.getElementById('obSlides').style.transform=`translateX(-${obStep*25}%)`;
+  for(let i=0;i<4;i++)document.getElementById('od'+i).className='od'+(i===obStep?' on':'');
+  document.getElementById('obBackBtn').style.display=obStep>0?'block':'none';
+  document.getElementById('obNextBtn').textContent=obStep===3?'🚀 Começar!':'Continuar →';
+  if(obStep===3)obSum();
+}
+document.getElementById('obGoal').addEventListener('input',obSum);
+document.getElementById('obQGoal').addEventListener('input',obSum);
+
+// ═══ APP ═══
+function launchApp(){
+  document.getElementById('ob').style.display='none';
+  document.getElementById('app').classList.add('on');
+  checkWeekReset();renderAll();
+}
+function renderAll(){renderHeader();renderToday();renderLessons();renderQuestoes();renderStats();renderPlan();}
+
+// ═══ HEADER ═══
+function renderHeader(){
+  const dl=daysLeft(),p=pctDone(),r=risk(),wd=weekLessDone(),wq=weekQDone();
+  document.getElementById('hDias').textContent=dl!==null?dl:'—';
+  const h=new Date().getHours();
+  document.getElementById('hTitle').textContent=(h<12?'Bom dia':h<18?'Boa tarde':'Boa noite')+' 👋';
+  document.getElementById('hSub').textContent=p+'% do conteúdo concluído';
+  document.getElementById('hProgF').style.width=p+'%';
+  const rp=document.getElementById('rPill');
+  rp.className='rpill '+(r==='low'?'r-low':r==='med'?'r-med':'r-hi');
+  rp.textContent=r==='low'?'✅ No ritmo':r==='med'?'⚡ Atenção':'🔴 Crítico';
+  document.getElementById('hRight').textContent=wd+'/'+weekGoal()+' aulas · '+wq+'/'+questGoal()+' Q';
+}
+
+// ═══ TODAY ═══
+function renderToday(){
+  const wd=weekLessDone(),wg=weekGoal(),wq=weekQDone(),qg=questGoal();
+  const flA=Math.max(0,wg-wd),flQ=Math.max(0,qg-wq);
+  const sugg=D.lessons.filter(l=>!l.done).slice(0,3);
+
+  // Mission
+  const msTitle=document.getElementById('msTitle');
+  const msItems=document.getElementById('msItems');
+  if(!D.lessons.length){
+    msTitle.textContent='Adicione suas aulas na aba 📚';msItems.innerHTML='';
+  } else if(flA===0&&flQ===0){
+    msTitle.textContent='🎉 Metas da semana batidas!';
+    msItems.innerHTML='<div style="font-size:12px;opacity:.9">Revise ou antecipe a próxima semana 💪</div>';
+  } else if(flA===0){
+    msTitle.textContent=`✅ Aulas ok! Faltam ${flQ} questões`;
+    msItems.innerHTML='<div style="font-size:12px;opacity:.9">Vá para ❓ Questões para marcar o progresso</div>';
+  } else {
+    msTitle.textContent=`Complete ${Math.min(flA,2)}-${Math.min(flA,3)} aulas + questões`;
+    msItems.innerHTML=sugg.map(l=>`
+      <div class="ms-item" onclick="qDone(${l.id})">
+        <div class="ms-cb${l.done?' chk':''}" id="mscb${l.id}">${l.done?'✓':''}</div>
+        <div class="ms-txt">${l.title}</div>
+      </div>`).join('');
+  }
+
+  // Ritmo card
+  document.getElementById('rcGoal').textContent=wg;
+  document.getElementById('rcQGoal').textContent=qg;
+  const rcH=document.getElementById('rcHint');
+  rcH.textContent=(D.weekGoalOverride!==null||D.questGoalOverride!==null)
+    ?'⚡ Ajustado para esta semana — reseta na segunda'
+    :'Redefine automaticamente toda segunda-feira';
+
+  // Rings
+  setRing('wRingA',138.2,wg?Math.min(100,Math.round(wd/wg*100)):0,'var(--p)');
+  setRing('wRingQ',138.2,qg?Math.min(100,Math.round(wq/qg*100)):0,'var(--q)');
+  document.getElementById('wDA').textContent=wd;document.getElementById('wGA').textContent=wg;document.getElementById('wFA').textContent=flA;
+  document.getElementById('wDQ').textContent=wq;document.getElementById('wGQ').textContent=qg;document.getElementById('wFQ').textContent=flQ;
+
+  // Stats
+  const tot=D.lessons.length,dn=D.lessons.filter(l=>l.done).length;
+  document.getElementById('sDn').textContent=dn;document.getElementById('sDnS').textContent='de '+tot;
+  document.getElementById('sPg').textContent=pctDone()+'%';
+  document.getElementById('sSm').textContent=weeksLeft()!==null?weeksLeft():'—';
+
+  renderDec('decToday',true);
+}
+
+function setRing(id,circ,pct,color){
+  const el=document.getElementById(id);if(!el)return;
+  el.style.strokeDashoffset=circ*(1-pct/100);el.style.stroke=pct>=100?'var(--s)':color;
+}
+
+function qDone(id){
+  const l=D.lessons.find(x=>x.id===id);if(!l||l.done)return;
+  l.done=true;l.doneAt=today();save();
+  const cb=document.getElementById('mscb'+id);if(cb){cb.textContent='✓';cb.classList.add('chk','popping');}
+  setTimeout(()=>renderAll(),350);
+}
+
+// ═══ RHYTHM ADJUST ═══
+function adjGoal(d){
+  const cur=weekGoal();const n=Math.max(1,cur+d);
+  D.weekGoalOverride=n;save();renderAll();
+}
+function adjQGoal(d){
+  const cur=questGoal();const n=Math.max(10,cur+d);
+  D.questGoalOverride=n;save();renderAll();
+  // sync rcQGoal2
+  const el2=document.getElementById('rcQGoal2');if(el2)el2.textContent=n;
+}
+
+// ═══ LESSONS ═══
+let filt='all';
+function setFilter(f){
+  filt=f;['all','pending','done'].forEach(k=>{
+    document.getElementById('f'+k.charAt(0).toUpperCase()+k.slice(1)).className='fc'+(k===f?' on':'');
+  });renderLessons();
+}
+function renderLessons(){
+  const q=(document.getElementById('sInp')?.value||'').toLowerCase();
+  const c=document.getElementById('lessonList');if(!c)return;
+  let ls=D.lessons;
+  if(filt==='pending')ls=ls.filter(l=>!l.done);
+  if(filt==='done')ls=ls.filter(l=>l.done);
+  if(q)ls=ls.filter(l=>l.title.toLowerCase().includes(q));
+  if(!ls.length){
+    c.innerHTML=`<div style="text-align:center;padding:32px;color:var(--t2)"><div style="font-size:36px;margin-bottom:10px">${filt==='done'?'🎯':'📚'}</div><div style="font-size:13px">${filt==='done'?'Nenhuma aula concluída ainda.':q?'Nenhuma aula encontrada.':'Nenhuma aula cadastrada.<br>Use o campo acima.'}</div></div>`;return;
+  }
+  const groups={};ls.forEach(l=>{const t=l.tema||'Geral';if(!groups[t])groups[t]=[];groups[t].push(l);});
+  const clrs=['#6366f1','#8b5cf6','#10b981','#f59e0b','#ef4444','#06b6d4','#f97316','#ec4899'];
+  c.innerHTML=Object.keys(groups).map((tema,ti)=>{
+    const col=clrs[ti%clrs.length],items=groups[tema];
+    return`<div class="card" style="margin-bottom:9px">
+      <div style="font-size:10px;font-weight:800;text-transform:uppercase;color:${col};margin-bottom:9px;display:flex;justify-content:space-between">
+        <span>${tema}</span><span style="color:var(--t2)">${items.filter(l=>l.done).length}/${items.length}</span>
+      </div>
+      ${items.map(l=>`
+        <div class="li${l.done?' dn':''}" onclick="togLesson(${l.id})">
+          <div class="lcb${l.done?' chk':''}">${l.done?'✓':''}</div>
+          <div class="linfo"><div class="ltitle">${l.title}</div><span class="ltag">${l.tema||'Geral'}</span></div>
+          <button class="ldel" onclick="event.stopPropagation();delLesson(${l.id})">✕</button>
+        </div>`).join('')}
+    </div>`;
+  }).join('');
+}
+function togLesson(id){const l=D.lessons.find(x=>x.id===id);if(!l)return;l.done=!l.done;l.doneAt=l.done?today():null;save();renderAll();}
+function delLesson(id){if(!confirm('Remover esta aula?'))return;D.lessons=D.lessons.filter(l=>l.id!==id);save();renderAll();}
+function addLesson(){
+  const inp=document.getElementById('addInp');const t=inp.value.trim();if(!t)return;
+  D.lessons.push({id:D.nid++,title:t,tema:extractTema(t),done:false,doneAt:null});inp.value='';save();renderAll();
+}
+function openBulk(){document.getElementById('bmod').classList.add('on');}
+function closeBulk(){document.getElementById('bmod').classList.remove('on');}
+function importBulk(){
+  const raw=document.getElementById('mta').value.trim();if(!raw){closeBulk();return;}
+  raw.split('\n').map(l=>l.trim()).filter(l=>l).forEach(title=>{
+    D.lessons.push({id:D.nid++,title,tema:extractTema(title),done:false,doneAt:null});
+  });document.getElementById('mta').value='';closeBulk();save();renderAll();
+}
+
+// ═══ QUESTÕES ═══
+function addQ(n){
+  const t=today();D.questLog[t]=Math.max(0,(D.questLog[t]||0)+n);save();renderAll();}
+function renderQuestoes(){
+  const tq=todayQ(),wq=weekQDone(),qg=questGoal(),flQ=Math.max(0,qg-wq);
+  const du=Math.max(1,6-new Date().getDay());
+  document.getElementById('qTodayN').textContent=tq;
+  // week bar
+  const pct=qg?Math.min(100,Math.round(wq/qg*100)):0;
+  document.getElementById('qWeekBar').style.width=pct+'%';
+  document.getElementById('qWeekLabel').textContent=wq+' / '+qg+' questões';
+  document.getElementById('qWeekPct').textContent=pct+'%';
+  document.getElementById('qWTotal').textContent=wq;
+  document.getElementById('qWFalt').textContent=flQ;
+  document.getElementById('qWDia').textContent=Math.ceil(flQ/du)+'/dia';
+  // sync ritmo questoes
+  const rq2=document.getElementById('rcQGoal2');if(rq2)rq2.textContent=qg;
+  renderDecQ();
+}
+function renderDecQ(){
+  const wq=weekQDone(),qg=questGoal(),fl=Math.max(0,qg-wq);
+  const du=Math.max(1,6-new Date().getDay());
+  const el=document.getElementById('decQ');if(!el)return;
+  let h='';
+  if(fl===0){
+    h=`<div class="dm ahd"><div class="dh">✅ Meta de questões batida!</div>
+      <div class="di"><span class="da-q">→</span><span>Faça questões de revisão ou antecipe a próxima semana</span></div></div>`;
+  } else {
+    h=`<div class="dm qsty"><div class="dh">❓ Para esta semana</div>
+      <div class="di"><span class="da-q">→</span><span>Faltam <strong>${fl} questões</strong> para bater a meta</span></div>
+      <div class="di"><span class="da-q">→</span><span>Ritmo mínimo: <strong>${Math.ceil(fl/du)} questões/dia</strong> pelos próximos ${du} dias</span></div>
+      <div class="di"><span class="da-q">→</span><span>Meta ajustável pelo botão ⚡ acima se a rotina apertar</span></div></div>`;
+  }
+  el.innerHTML=h;
+}
+let qHChart=null;
+function addQHist(){
+  const v=+document.getElementById('qHistInp').value;if(isNaN(v)||v<0)return;
+  D.qWeekHistory.push({label:'S'+(D.qWeekHistory.length+1),n:v});
+  document.getElementById('qHistInp').value='';save();renderQuestoes();renderQHistChart();
+}
+function renderQHistChart(){
+  const hist=[...D.qWeekHistory.slice(-7),{label:'Atual',n:weekQDone()}];
+  const ctx=document.getElementById('qHistChart')?.getContext('2d');if(!ctx)return;
+  if(qHChart)qHChart.destroy();
+  qHChart=new Chart(ctx,{type:'bar',data:{labels:hist.map(h=>h.label),datasets:[
+    {label:'Questões',data:hist.map(h=>h.n),backgroundColor:'#8b5cf620',borderColor:'#8b5cf6',borderWidth:2,borderRadius:5},
+    {type:'line',label:'Meta',data:hist.map(()=>questGoal()),borderColor:'#ef4444',borderDash:[4,3],pointRadius:0,borderWidth:1.5}
+  ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{font:{size:10}}},y:{beginAtZero:true,ticks:{font:{size:10}}}}}});
+}
+
+// ═══ STATS ═══
+let hChart=null;
+function renderStats(){
+  const dn=D.lessons.filter(l=>l.done).length,tot=D.lessons.length,p=pctDone(),id=idealLoad(),wg=weekGoal();
+  const circ=301.6,off=circ*(1-p/100);
+  const br=document.getElementById('bigRing');
+  if(br){br.style.strokeDashoffset=off;br.style.stroke=p>=70?'var(--s)':p>=40?'var(--p)':'var(--d)';}
+  const se=(i,v)=>{const e=document.getElementById(i);if(e)e.textContent=v;};
+  se('bigPct',p+'%');se('bigSub',dn+' / '+tot);
+  se('stDn',dn);se('stPd',tot-dn);se('stMt',wg+'/sem');se('stId',id?id+'/sem':'—');
+  // Carga estimada
+  const minPorSem=(id||wg)*D.lessonMin;
+  const diasUtil=5;
+  se('stMin',Math.round(minPorSem/diasUtil));
+  se('stSemH',(minPorSem/60).toFixed(1));
+  se('stAulaMin',D.lessonMin);
+  // Chart aulas
+  const hist=[...D.weekHistory.slice(-7),{label:'Atual',n:weekLessDone()}];
+  const ctx=document.getElementById('histChart')?.getContext('2d');
+  if(ctx){if(hChart)hChart.destroy();
+    hChart=new Chart(ctx,{type:'bar',data:{labels:hist.map(h=>h.label),datasets:[
+      {label:'Aulas',data:hist.map(h=>h.n),backgroundColor:'#6366f120',borderColor:'#6366f1',borderWidth:2,borderRadius:5},
+      {type:'line',label:'Meta',data:hist.map(()=>wg),borderColor:'#ef4444',borderDash:[4,3],pointRadius:0,borderWidth:1.5}
+    ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{font:{size:10}}},y:{beginAtZero:true,ticks:{font:{size:10}}}}}});}
+  renderQHistChart();
+}
+function addHist(){
+  const v=+document.getElementById('histInp').value;if(isNaN(v)||v<0)return;
+  D.weekHistory.push({label:'S'+(D.weekHistory.length+1),n:v});
+  document.getElementById('histInp').value='';save();renderStats();
+}
+
+// ═══ DECISION ═══
+function renderDec(id,compact=false){
+  const el=document.getElementById(id);if(!el)return;
+  const flA=Math.max(0,weekGoal()-weekLessDone()),flQ=Math.max(0,questGoal()-weekQDone());
+  const r=risk(),id2=idealLoad(),wl=weeksLeft();
+  const top=D.lessons.find(l=>!l.done);let h='';
+  if(r==='hi')h+=`<div class="dm crit"><div class="dh">🔴 Modo Emergência</div>
+    <div class="di"><span class="da">→</span><span>Foque só em: <strong>${top?.tema||'tema #1'}</strong></span></div>
+    <div class="di"><span class="da">→</span><span>Ajuste o ritmo semanal pelo botão ⚡ em "Hoje"</span></div></div>`;
+  if(flA>0)h+=`<div class="dm del"><div class="dh">📚 Aulas desta semana</div>
+    <div class="di"><span class="da">→</span><span>Faltam <strong>${flA} aulas</strong> para a meta</span></div>
+    <div class="di"><span class="da">→</span><span>Próxima: <em>${top?.title||'—'}</em></span></div></div>`;
+  else h+=`<div class="dm ahd"><div class="dh">✅ Aulas da semana ok!</div>
+    <div class="di"><span class="da">→</span><span>Revise conteúdo ou antecipe próxima semana</span></div></div>`;
+  if(flQ>0)h+=`<div class="dm qsty"><div class="dh">❓ Questões desta semana</div>
+    <div class="di"><span class="da-q">→</span><span>Faltam <strong>${flQ} questões</strong> para a meta</span></div></div>`;
+  if(!compact&&id2)h+=`<div class="dm tod"><div class="dh">📊 Plano geral</div>
+    <div class="di"><span class="da">→</span><span>${wl} sem. restantes · ideal: <strong>${id2} aulas/sem</strong></span></div>
+    ${id2>weekGoal()?`<div class="di"><span class="da">⚠</span><span>Carga ideal (${id2}) > meta (${weekGoal()}) — ajuste pelo ⚡</span></div>`:''}</div>`;
+  el.innerHTML=h||'<div style="font-size:12px;color:var(--t2)">Configure a data e adicione aulas para ver recomendações.</div>';
+}
+
+// ═══ PLAN ═══
+function renderPlan(){
+  const pd=document.getElementById('pDate'),ps=document.getElementById('pSlider');
+  const pqs=document.getElementById('pQSlider'),pms=document.getElementById('pMinSlider');
+  if(pd)pd.value=D.provaDate||'';
+  if(ps){ps.value=D.goal;document.getElementById('pSliderN').textContent=D.goal;}
+  if(pqs){pqs.value=D.qGoal;document.getElementById('pQSliderN').textContent=D.qGoal;}
+  if(pms){pms.value=D.lessonMin;document.getElementById('pMinN').textContent=D.lessonMin;}
+  updPSum();renderDec('decFull',false);
+}
+function savePlan(){
+  const d=document.getElementById('pDate')?.value;
+  const g=+document.getElementById('pSlider')?.value;
+  const qg=+document.getElementById('pQSlider')?.value;
+  const m=+document.getElementById('pMinSlider')?.value;
+  if(d)D.provaDate=d;if(g)D.goal=g;if(qg)D.qGoal=qg;if(m)D.lessonMin=m;
+  save();updPSum();renderAll();
+}
+function updPSum(){
+  const el=document.getElementById('pSum');if(!el)return;
+  const wl=weeksLeft(),id=idealLoad(),p=pending();
+  if(!wl){el.textContent='Configure a data da prova para ver o plano.';return;}
+  el.textContent=`${wl} semanas · ${p} aulas pendentes · ideal: ${id||'—'} aulas/sem · ${Math.round((weekGoal()*D.lessonMin)/60*10)/10}h de estudo/sem`;
+}
+
+// ═══ TABS ═══
+const TABS={Hoje:{p:'pHoje',n:'nbHoje'},Aulas:{p:'pAulas',n:'nbAulas'},Questoes:{p:'pQuestoes',n:'nbQuestoes'},Stats:{p:'pStats',n:'nbStats'},Plano:{p:'pPlano',n:'nbPlano'}};
+function goTab(name){
+  Object.entries(TABS).forEach(([k,v])=>{
+    document.getElementById(v.p).classList.toggle('on',k===name);
+    document.getElementById(v.n).classList.toggle('on',k===name);
+  });
+  if(name==='Stats')renderStats();
+  if(name==='Plano')renderPlan();
+  if(name==='Aulas')renderLessons();
+  if(name==='Hoje')renderToday();
+  if(name==='Questoes')renderQuestoes();
+  document.getElementById('content').scrollTop=0;
+}
+
+// ═══ UTILS ═══
+function resetWeek(){if(!confirm('Resetar semana atual?'))return;D.weekStart=monday(new Date()).toISOString().slice(0,10);D.weekGoalOverride=null;D.questGoalOverride=null;save();renderAll();}
+function resetAll(){if(!confirm('Apagar TUDO e recomeçar?'))return;localStorage.removeItem(SK);location.reload();}
+
+// ═══ INIT ═══
+if(D.done){launchApp();}
+</script>
+</body>
+</html>
