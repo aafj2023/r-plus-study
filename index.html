@@ -1805,8 +1805,10 @@ async function completeReview(id,ok){
   else{const s=+r.stage;if(s>=4){patch={status:'done',doneAt:today(),dueDate:null,lastScore:'ok'};}
     else{const gap=s===1?7:s===2?15:30;patch={stage:s+1,dueDate:addDays(today(),gap),lastScore:'ok'};}}
   try{await Store.updateReview(id,patch);}catch(e){}
-  if(typeof Cloud!=='undefined'&&Cloud.user)Cloud.schedulePush();
-  await loadReviews();renderReviews();renderReviewsSummary();renderMissionInsight();
+  // a revisão é feita resolvendo questões → soma ao contador de questões do dia
+  const t=today();D.questLog[t]=Math.max(0,(D.questLog[t]||0)+REVIEW_QS);
+  save(); // save() já agenda o push pra nuvem
+  await loadReviews();renderAll();
 }
 function reviewOk(id){completeReview(id,true);}
 function reviewDifficult(id){completeReview(id,false);}
@@ -1830,7 +1832,7 @@ function renderReviews(){
       </div>
     </div>`;
   }).join('');
-  if(due.length>1)h+=`<div style="font-size:11px;color:var(--t2);text-align:center;margin-top:9px">${Math.min(list.length,budget)} de ${due.length} revisões pendentes · ~${REVIEW_QS} questões cada</div>`;
+  h+=`<div style="font-size:11px;color:var(--t2);text-align:center;margin-top:9px">${due.length>1?`${Math.min(list.length,budget)} de ${due.length} revisões pendentes · `:''}cada "✓ Fiz" soma ${REVIEW_QS} questões ao seu total</div>`;
   el.innerHTML=h;
 }
 
