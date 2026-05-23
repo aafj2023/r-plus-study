@@ -176,6 +176,10 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sa
 .frow2>.fld{flex:1}
 .retro-row{display:flex;gap:6px;align-items:center;margin-bottom:7px}
 .retro-row .inp{flex:1;min-width:0}
+.dchips-wrap{display:flex;flex-wrap:wrap;gap:7px;justify-content:center}
+.dchip{padding:9px 14px;border-radius:20px;font-size:13px;font-weight:800;border:1.5px solid var(--bd);background:#fff;cursor:pointer;color:var(--p)}
+.dchip:active{transform:scale(.96)}
+.dchip-add{border-style:dashed;color:var(--t2);border-color:var(--t3)}
 
 /* HISTORY LIST */
 .hl{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--bd);cursor:pointer}
@@ -373,7 +377,7 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sa
         <div class="ms-tag">🎯 Missão de hoje</div>
         <div class="ms-title" id="msTitle">—</div>
         <div class="ms-row">
-          <button class="ms-qa" onclick="addAula(1)">📚 +1 aula</button>
+          <button class="ms-qa" onclick="goTab('Aulas')">📚 Registrar aula</button>
           <button class="ms-qa" onclick="addQ(10)">❓ +10 questões</button>
         </div>
         <div id="missionInsight" style="font-size:11.5px;opacity:.92;margin-top:10px;line-height:1.45"></div>
@@ -433,14 +437,11 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sa
         <div class="ctitle" style="color:var(--p)">📚 Aulas hoje</div>
         <div class="q-counter">
           <div class="q-num" style="color:var(--p)" id="aTodayN">0</div>
-          <div class="q-label">aulas feitas hoje</div>
+          <div class="q-label">toque a matéria — conta e já agenda a revisão</div>
         </div>
-        <div class="q-btns">
-          <button class="q-btn" style="background:var(--pl);color:var(--p)" onclick="addAula(-1)">−1</button>
-          <button class="q-btn" style="background:var(--p);color:#fff" onclick="addAula(1)">+1</button>
-          <button class="q-btn" style="background:var(--pl);color:var(--p)" onclick="addAula(2)">+2</button>
-          <button class="q-btn" style="background:var(--pl);color:var(--p)" onclick="addAula(3)">+3</button>
-          <button class="q-btn" style="background:var(--pl);color:var(--p)" onclick="addAula(5)">+5</button>
+        <div id="discChips"></div>
+        <div style="display:flex;gap:7px;justify-content:center;margin-top:11px">
+          <button class="q-btn" style="background:var(--pl);color:var(--p)" onclick="undoLastAula()">↩︎ desfazer</button>
         </div>
       </div>
 
@@ -1250,7 +1251,6 @@ function renderToday(){
 }
 
 // ═══ ADD / ADJUST ═══
-function addAula(n){const t=today();D.aulaLog[t]=Math.max(0,(D.aulaLog[t]||0)+n);save();renderAll();}
 function addQ(n){const t=today();D.questLog[t]=Math.max(0,(D.questLog[t]||0)+n);save();renderAll();}
 function adjAulaGoal(d){D.aulaWeekOverride=Math.max(1,aulaGoal()+d);save();renderAll();}
 function adjQGoal(d){D.qWeekOverride=Math.max(10,qGoal()+d);save();renderAll();}
@@ -1267,6 +1267,7 @@ function renderProj(elId){
 function renderAulas(){
   document.getElementById('aTodayN').textContent=todayAula();
   document.getElementById('rcGoal2').textContent=aulaGoal();
+  renderDiscChips();
   const aw=document.getElementById('aWeek');if(aw)aw.innerHTML=paceBar('Aulas','#6366f1',weekPacing().a,'aulas');
   const am=document.getElementById('aMonth');if(am)am.innerHTML=paceBar('Aulas','#6366f1',monthPacing().a,'aulas');
   renderProj('projAulas',false);
@@ -1451,9 +1452,41 @@ async function saveLessonModal(){
 }
 async function deleteLessonRec(id,date){
   if(!confirm('Remover esta aula registrada? O contador do dia será reduzido em 1.'))return;
-  try{await Store.deleteLesson(id);}catch(e){}
+  try{await Store.deleteLesson(id);await removeReviewForLesson(id);}catch(e){}
   D.aulaLog[date]=Math.max(0,(D.aulaLog[date]||0)-1);save();
-  renderAll();renderLessonHist();
+  await loadReviews();renderAll();renderLessonHist();
+}
+async function removeReviewForLesson(lessonId){
+  try{const revs=await Store.getReviews();const rev=revs.find(r=>r.lessonId===lessonId&&r.status==='pending');if(rev)await Store.deleteReview(rev.id);}catch(e){}
+}
+// ── Registro rápido de aula por disciplina (1 toque = conta + agenda revisão) ──
+async function quickLogAula(disc){
+  disc=(disc||'Geral').trim()||'Geral';const date=today();
+  try{
+    const rec=await Store.addLesson({date,disciplina:disc,nome:'',numero:null,duracao:null,obs:''});
+    D.aulaLog[date]=(D.aulaLog[date]||0)+1;save();
+    try{await Store.addReview({disciplina:disc,label:'',origin:'lesson',lessonId:rec&&rec.id,stage:1,dueDate:addDays(date,1)});await loadReviews();}catch(e){}
+  }catch(e){}
+  renderAll();
+}
+async function undoLastAula(){
+  const t=today();if((D.aulaLog[t]||0)<=0)return;
+  try{
+    const all=await Store.getLessons();
+    const todays=all.filter(r=>r.date===t).sort((a,b)=>(b.createdAt||0)-(a.createdAt||0));
+    if(todays.length){await Store.deleteLesson(todays[0].id);await removeReviewForLesson(todays[0].id);await loadReviews();}
+  }catch(e){}
+  D.aulaLog[t]=Math.max(0,(D.aulaLog[t]||0)-1);save();renderAll();
+}
+async function renderDiscChips(){
+  const el=document.getElementById('discChips');if(!el)return;
+  if(typeof Store==='undefined'||!Store.ready){el.innerHTML='<div style="font-size:12px;color:var(--t2);text-align:center;padding:6px">Carregando…</div>';return;}
+  let all=[];try{all=await Store.getLessons();}catch(e){}
+  const seen=[];all.forEach(r=>{const d=r.disciplina||'Geral';if(seen.indexOf(d)<0)seen.push(d);});
+  const top=seen.slice(0,6);
+  if(!top.length){el.innerHTML='<div style="font-size:12px;color:var(--t2);text-align:center;line-height:1.5;margin-bottom:10px">Registre sua 1ª aula: toque em <strong>“+ nova matéria”</strong>. Depois, cada matéria vira um atalho de 1 toque (conta + agenda a revisão).</div><div class="dchips-wrap"><button class="dchip dchip-add" onclick="openLessonModal()">+ nova matéria</button></div>';return;}
+  const chips=top.map(d=>`<button class="dchip" style="border-color:${discColor(d)};color:${discColor(d)}" onclick="quickLogAula('${esc(d)}')">+ ${esc(d)}</button>`).join('')+`<button class="dchip dchip-add" onclick="openLessonModal()">+ nova matéria</button>`;
+  el.innerHTML=`<div class="dchips-wrap">${chips}</div>`;
 }
 async function fillDiscList(){
   const dl=document.getElementById('discList');if(!dl||!Store.ready)return;
@@ -1898,7 +1931,7 @@ function renderReviewsSummary(){
 function toggleReviews(){const b=document.getElementById('reviewsBody'),t=document.getElementById('revToggle');if(!b)return;const show=b.style.display==='none';b.style.display=show?'block':'none';if(t)t.textContent=show?'Ocultar':'Revisar';if(show)renderReviews();}
 
 // chamado quando o Store/IndexedDB termina de inicializar
-function onStoreReady(){renderLessonHist();fillDiscList();renderCourseMap();renderStreaks();renderMissionInsight();loadReviews().then(()=>{renderReviews();renderReviewsSummary();});}
+function onStoreReady(){renderLessonHist();renderDiscChips();fillDiscList();renderCourseMap();renderStreaks();renderMissionInsight();loadReviews().then(()=>{renderReviews();renderReviewsSummary();});}
 
 // ═══ TABS ═══
 const TABS={Hoje:{p:'pHoje',n:'nbHoje'},Aulas:{p:'pAulas',n:'nbAulas'},Questoes:{p:'pQuestoes',n:'nbQuestoes'},Stats:{p:'pStats',n:'nbStats'},Plano:{p:'pPlano',n:'nbPlano'}};
