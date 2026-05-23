@@ -39,7 +39,7 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sa
 .hdr{background:linear-gradient(135deg,#4338ca,#7c3aed);color:#fff;padding:12px 18px 9px;flex-shrink:0}
 .hdr-row{display:flex;justify-content:space-between;align-items:center;gap:10px}
 .hdr-title{font-size:18px;font-weight:900;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.avatar{width:38px;height:38px;border-radius:50%;border:2px solid rgba(255,255,255,.55);background:rgba(255,255,255,.18);color:#fff;font-size:13px;font-weight:800;display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0;overflow:hidden;flex-shrink:0}
+.avatar{width:38px;height:38px;border-radius:50%;border:2px solid rgba(255,255,255,.7);background:rgba(255,255,255,.95);color:var(--pd);font-size:13px;font-weight:900;display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0;overflow:hidden;flex-shrink:0}
 .avatar img{width:100%;height:100%;object-fit:cover;display:none}
 .pmenu{display:none;position:fixed;top:56px;right:14px;z-index:250;background:#fff;border-radius:14px;box-shadow:0 10px 34px rgba(0,0,0,.24);width:248px;max-width:calc(100vw - 28px);padding:13px;color:var(--t)}
 .pmenu.on{display:block}
@@ -573,6 +573,7 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sa
           <text x="60" y="58" class="ring-lbl" font-size="24" font-weight="900" fill="#1e293b" id="bigPct">0%</text>
           <text x="60" y="76" class="ring-lbl" font-size="11" fill="#94a3b8" id="bigSub">0 / 0</text>
         </svg>
+        <div id="bigPlan" style="font-size:11px;color:var(--t2)">—</div>
       </div>
       <div class="sg">
         <div class="sc"><div class="sl">Aulas feitas</div><div class="sv" style="color:var(--s)" id="stDn">0</div></div>
@@ -581,7 +582,11 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sa
         <div class="sc"><div class="sl">Necessário/sem</div><div class="sv" style="color:var(--w)" id="stId">—</div></div>
       </div>
       <div class="card">
-        <div class="ctitle">🔮 Projeção até a prova</div>
+        <div class="ctitle">📆 Realizado × planejado (semana e mês)</div>
+        <div id="statsHorizons"></div>
+      </div>
+      <div class="card">
+        <div class="ctitle">🎯 Até a prova</div>
         <div id="projStats"></div>
       </div>
       <div class="card">
@@ -1186,9 +1191,15 @@ function renderAvatar(){
   const nm=displayName();
   const initials=nm?nm.trim().slice(0,2).toUpperCase():(u&&u.email?u.email[0].toUpperCase():'R+');
   init.textContent=initials;
+  // iniciais SEMPRE como base; a foto só aparece se carregar de verdade
+  init.style.display='';img.style.display='none';
   const photo=u&&u.photoURL;
-  if(photo){img.onerror=function(){img.style.display='none';init.style.display='';};img.style.display='';init.style.display='none';if(img.src!==photo)img.src=photo;}
-  else{img.style.display='none';init.style.display='';}
+  if(photo){
+    img.onload=function(){img.style.display='';init.style.display='none';};
+    img.onerror=function(){img.style.display='none';init.style.display='';};
+    if(img.getAttribute('src')!==photo){img.setAttribute('src',photo);}
+    else if(img.complete&&img.naturalWidth>0){img.style.display='';init.style.display='none';}
+  }else{img.removeAttribute('src');}
 }
 // ═══ MENU DE PERFIL ═══
 function toggleProfile(e){if(e)e.stopPropagation();const m=document.getElementById('profileMenu');if(!m)return;if(m.classList.contains('on')){closeProfile();return;}renderProfileMenu();m.classList.add('on');setTimeout(()=>document.addEventListener('click',outsideProfile),0);}
@@ -1229,33 +1240,11 @@ function adjAulaGoal(d){D.aulaWeekOverride=Math.max(1,aulaGoal()+d);save();rende
 function adjQGoal(d){D.qWeekOverride=Math.max(10,qGoal()+d);save();renderAll();}
 
 // ═══ PROJECTION CARD ═══
-function renderProj(elId,compact){
+// projeção unificada (mesma apresentação em Início, Aulas e Stats)
+function renderProj(elId){
   const el=document.getElementById(elId);if(!el)return;
-  const x=proj();
-  if(x.wl===null){el.innerHTML='<div style="font-size:12px;color:var(--t2)">Configure a data da prova no Plano para ver a projeção.</div>';return;}
-  if(x.wl===0){el.innerHTML='<div class="dm tod"><div class="dh">📅 Reta final</div><div class="di"><span class="da">→</span><span>A prova é nesta semana — foco total em revisão e questões!</span></div></div>';return;}
-  let status;
-  if(x.onTime===true){
-    const folga=x.wl-x.weeksNeeded;
-    status=`<div class="dm ahd"><div class="dh">✅ No ritmo certo</div>
-      <div class="di"><span class="da">→</span><span>No seu ritmo (~${Math.round(x.p)} aulas/sem) você termina o curso ${folga<=0?'bem em cima do prazo':`~${folga} semana(s) antes`}.</span></div>
-      <div class="di"><span class="da">→</span><span>Conclusão prevista: <strong>${fmtDate(x.finishDate)}</strong></span></div></div>`;
-  } else {
-    const falta=Math.max(0,x.total-x.projTotal);
-    status=`<div class="dm crit"><div class="dh">⚠️ Ritmo abaixo do necessário</div>
-      <div class="di"><span class="da">→</span><span>No ritmo atual (~${Math.round(x.p)}/sem) faltariam <strong>~${falta} aulas</strong> na data da prova.</span></div>
-      <div class="di"><span class="da">→</span><span>Suba para <strong>${x.req} aulas/sem</strong> para terminar a tempo.</span></div></div>`;
-  }
-  let extra='';
-  if(!compact){
-    extra=`<div class="dm tod"><div class="dh">📊 Números</div>
-      <div class="di"><span class="da">→</span><span>Curso: <strong>${x.cum}/${x.total}</strong> (${x.pct}%) · faltam ${x.rem}</span></div>
-      <div class="di"><span class="da">→</span><span>Semanas até a prova: <strong>${x.wl}</strong></span></div>
-      <div class="di"><span class="da">→</span><span>Necessário agora: <strong>${x.req} aulas/sem</strong> · seu ritmo: ~${Math.round(x.p)}/sem</span></div></div>`;
-  } else {
-    extra=`<div style="font-size:11px;color:var(--t2);margin-top:2px">Curso: ${x.cum}/${x.total} (${x.pct}%) · necessário ${x.req}/sem · ritmo ~${Math.round(x.p)}/sem</div>`;
-  }
-  el.innerHTML=status+extra;
+  const ep=examPacing();
+  el.innerHTML=ep?examHtml(ep):naMsg();
 }
 
 // ═══ AULAS TAB ═══
@@ -1330,16 +1319,30 @@ function renderQHistChart(){
 }
 
 // ═══ STATS TAB ═══
+function renderStatsHorizons(){
+  const el=document.getElementById('statsHorizons');if(!el)return;
+  const wp=weekPacing(),mp=monthPacing();
+  const rows=[['Semana · aulas',wp.a],['Semana · questões',wp.q],['Mês · aulas',mp.a],['Mês · questões',mp.q]];
+  el.innerHTML=rows.map(([label,pp],i)=>`<div style="display:flex;justify-content:space-between;align-items:center;font-size:12px;padding:6px 0;${i<rows.length-1?'border-bottom:1px solid var(--bd)':''}"><span>${label}: <strong>${pp.done}/${pp.target}</strong></span>${statusPill(pp.status)}</div>`).join('');
+}
 function renderStats(){
-  const p=pctDone(),x=proj();
+  const p=pctDone(),x=proj(),ep=examPacing();
   const circ=301.6;const br=document.getElementById('bigRing');
-  if(br){br.style.strokeDashoffset=circ*(1-p/100);br.style.stroke=p>=70?'#10b981':p>=40?'#6366f1':'#ef4444';}
+  if(br){
+    br.style.strokeDashoffset=circ*(1-p/100);
+    let col='#6366f1';
+    if(ep){col=(ep.donePct>=ep.plannedPct-5)?'#10b981':(ep.donePct<ep.plannedPct-15?'#ef4444':'#f59e0b');}
+    else{col=p>=70?'#10b981':p>=40?'#6366f1':'#ef4444';}
+    br.style.stroke=col;
+  }
   const se=(i,v)=>{const e=document.getElementById(i);if(e)e.textContent=v;};
   se('bigPct',p+'%');se('bigSub',cumAulas()+' / '+D.totalAulas);
+  se('bigPlan',ep?('planejado p/ hoje: '+ep.plannedPct+'%'):'');
   se('stDn',cumAulas());se('stPd',remaining());se('stMt',aulaGoal()+'/sem');se('stId',x.req?x.req+'/sem':'—');
   const minPorSem=(x.req||aulaGoal())*D.lessonMin;
   se('stMin',Math.round(minPorSem/5));se('stSemH',(minPorSem/60).toFixed(1));se('stAulaMin',D.lessonMin);
-  renderProj('projStats',false);
+  renderStatsHorizons();
+  const ps=document.getElementById('projStats');if(ps)ps.innerHTML=ep?examHtml(ep):naMsg();
   // charts
   if(typeof Chart!=='undefined'){
     const histA=[...D.weekHistory.slice(-7),{label:'Atual',n:weekAulas()}];
