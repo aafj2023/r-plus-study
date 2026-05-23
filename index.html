@@ -6,6 +6,20 @@
 <title>R+ Study</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.0/dist/chart.umd.js" integrity="sha384-iU8HYtnGQ8Cy4zl7gbNMOhsDTTKX02BTXptVP/vqAWiaTfM7isw76iyZCsjL2eVi" crossorigin="anonymous"></script>
 <script src="https://cdn.jsdelivr.net/npm/dexie@4/dist/dexie.min.js" crossorigin="anonymous"></script>
+<!-- ⬇️ CONFIG DO FIREBASE: cole aqui o objeto de configuração do seu projeto para ativar o login + sincronização na nuvem -->
+<script>
+window.RPLUS_FIREBASE = null;
+/* Exemplo (substitua pelos seus valores do Console do Firebase):
+window.RPLUS_FIREBASE = {
+  apiKey: "...",
+  authDomain: "seu-projeto.firebaseapp.com",
+  projectId: "seu-projeto",
+  storageBucket: "seu-projeto.appspot.com",
+  messagingSenderId: "...",
+  appId: "..."
+};
+*/
+</script>
 <style>
 :root{color-scheme:light;--p:#6366f1;--pd:#4f46e5;--pl:#eef2ff;--s:#10b981;--sl:#d1fae5;--w:#f59e0b;--wl:#fef3c7;--d:#ef4444;--dl:#fee2e2;--q:#8b5cf6;--ql:#f5f3ff;--bg:#f1f5f9;--card:#fff;--t:#1e293b;--t2:#64748b;--t3:#cbd5e1;--bd:#e2e8f0;--r:14px}
 *{box-sizing:border-box;margin:0;padding:0}
@@ -636,6 +650,10 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sa
         </div>
       </div>
       <div class="card">
+        <div class="ctitle">☁️ Nuvem (sincronização)</div>
+        <div id="cloudBody"></div>
+      </div>
+      <div class="card">
         <div class="ctitle">💾 Backup e transferência</div>
         <div style="font-size:12px;color:var(--t2);margin-bottom:11px;line-height:1.5">Exporte um arquivo com <strong>todo</strong> o seu progresso (metas, contagens, aulas registradas e histórico). Guarde-o como segurança ou abra-o em outro aparelho para continuar de onde parou.</div>
         <div style="display:flex;gap:7px;flex-wrap:wrap">
@@ -717,7 +735,7 @@ function def(){return{
   weekStart:mondayStr(),firstWeek:mondayStr()
 };}
 let D=(()=>{try{const r=localStorage.getItem(SK);return r?Object.assign(def(),JSON.parse(r)):def();}catch(e){return def();}})();
-const save=()=>{localStorage.setItem(SK,JSON.stringify(D));try{if(typeof Store!=='undefined'&&Store.ready)Store.setSetting('appState',D);}catch(e){}};
+const save=()=>{localStorage.setItem(SK,JSON.stringify(D));try{if(typeof Store!=='undefined'&&Store.ready)Store.setSetting('appState',D);}catch(e){}try{if(typeof Cloud!=='undefined'&&Cloud.user)Cloud.schedulePush();}catch(e){}};
 
 // ═══ STORE: persistência estruturada (IndexedDB via Dexie; fallback localStorage) ═══
 const Store=(()=>{
@@ -845,6 +863,66 @@ const Store=(()=>{
     get mode(){return mode;},get ready(){return ready;}};
 })();
 
+// ═══ CLOUD: login Google + sincronização (Firebase/Firestore) ═══
+const Cloud=(()=>{
+  const V='10.12.2',BASE='https://www.gstatic.com/firebasejs/'+V+'/';
+  let auth=null,dbF=null,user=null,available=false,status='unconfigured',pushTimer=null,lastSync=null;
+  function loadSeq(urls,cb){let i=0;(function next(){if(i>=urls.length){cb();return;}const s=document.createElement('script');s.src=urls[i++];s.onload=next;s.onerror=()=>cb(new Error('falha ao carregar Firebase'));document.head.appendChild(s);})();}
+  function init(){
+    const CFG=window.RPLUS_FIREBASE;
+    if(!CFG){available=false;status='unconfigured';renderCloud();return;}
+    loadSeq([BASE+'firebase-app-compat.js',BASE+'firebase-auth-compat.js',BASE+'firebase-firestore-compat.js'],err=>{
+      if(err||typeof firebase==='undefined'){available=false;status='error';renderCloud();return;}
+      try{
+        firebase.initializeApp(CFG);auth=firebase.auth();dbF=firebase.firestore();available=true;status='off';
+        auth.onAuthStateChanged(u=>{user=u;onAuthChange();});
+      }catch(e){available=false;status='error';}
+      renderCloud();
+    });
+  }
+  async function signIn(){
+    if(!available){alert('A sincronização ainda não está configurada.');return;}
+    try{const p=new firebase.auth.GoogleAuthProvider();await auth.signInWithPopup(p);}
+    catch(e){alert('Não foi possível entrar: '+((e&&e.message)||e));}
+  }
+  async function signOut(){try{if(auth)await auth.signOut();}catch(e){}}
+  async function pull(){if(!user)return null;const d=await dbF.collection('backups').doc(user.uid).get();return d.exists?d.data():null;}
+  async function push(){
+    if(!user||!available)return;
+    status='syncing';renderCloud();
+    try{
+      let data={appState:D};try{if(Store.ready)data=await Store.exportAll();}catch(e){}
+      data.appState=D;
+      await dbF.collection('backups').doc(user.uid).set({data,updatedAt:Date.now(),email:user.email||''});
+      lastSync=Date.now();status='synced';
+    }catch(e){status='error';}
+    renderCloud();
+  }
+  function schedulePush(){if(!user||!available)return;clearTimeout(pushTimer);pushTimer=setTimeout(push,1500);}
+  async function applyRemote(data){
+    if(!data||!data.appState)return;
+    D=Object.assign(def(),data.appState);localStorage.setItem(SK,JSON.stringify(D));
+    try{if(Store.ready)await Store.importAll(data);}catch(e){}
+    renderAll();if(typeof onStoreReady==='function')onStoreReady();
+    lastSync=Date.now();status='synced';renderCloud();
+  }
+  async function onAuthChange(){
+    renderCloud();
+    if(!user)return;
+    let remote=null;try{remote=await pull();}catch(e){}
+    const localHasData=(Object.keys(D.aulaLog||{}).length>0)||(Object.keys(D.questLog||{}).length>0);
+    if(remote&&remote.data){
+      if(!localHasData){await applyRemote(remote.data);}
+      else{
+        const useCloud=confirm('Você tem dados na nuvem e neste aparelho.\n\nOK = usar os da NUVEM (substitui este aparelho).\nCancelar = enviar os DESTE aparelho para a nuvem.');
+        if(useCloud)await applyRemote(remote.data);else await push();
+      }
+    }else{await push();}
+  }
+  return {init,signIn,signOut,push,schedulePush,
+    get user(){return user;},get available(){return available;},get status(){return status;},get lastSync(){return lastSync;}};
+})();
+
 // ═══ LOG HELPERS ═══
 const sumLog=(log,from)=>Object.entries(log).filter(([d])=>!from||d>=from).reduce((s,[,n])=>s+(+n||0),0);
 function monthStart(){const d=new Date();return new Date(d.getFullYear(),d.getMonth(),1).toISOString().slice(0,10);}
@@ -951,6 +1029,7 @@ function launchApp(){
   document.getElementById('app').classList.add('on');
   checkWeekReset();renderAll();
   Store.init().then(()=>{if(typeof onStoreReady==='function')onStoreReady();}).catch(()=>{});
+  try{Cloud.init();}catch(e){}
 }
 function renderAll(){renderHeader();renderToday();renderAulas();renderQuestoes();renderStats();renderPlan();}
 
@@ -1161,7 +1240,7 @@ function renderPlan(){
   set('pSlider',D.aulaGoal);document.getElementById('pSliderN').textContent=D.aulaGoal;
   set('pQSlider',D.qGoal);document.getElementById('pQSliderN').textContent=D.qGoal;
   set('pMinSlider',D.lessonMin);document.getElementById('pMinN').textContent=D.lessonMin;
-  updPSum();renderDec('decFull',false);
+  updPSum();renderDec('decFull',false);renderCloud();
 }
 function savePlan(){
   const d=document.getElementById('pDate')?.value;
@@ -1368,6 +1447,29 @@ async function renderTimeline(){
     }).join('');
     return head+rows;
   }).join('')+`<div style="font-size:12px;color:var(--t2);text-align:center;margin-top:14px;padding-top:10px;border-top:1px solid var(--bd)">Total acumulado: <strong>${all.length}</strong> aulas registradas</div>`;
+}
+
+// ═══ NUVEM (UI) ═══
+function renderCloud(){
+  const el=document.getElementById('cloudBody');if(!el||typeof Cloud==='undefined')return;
+  const st=Cloud.status;
+  if(!Cloud.available){
+    el.innerHTML=st==='error'
+      ?'<div style="font-size:12px;color:var(--d);line-height:1.5">Não foi possível carregar a sincronização agora. Verifique a conexão e recarregue.</div>'
+      :'<div style="font-size:12px;color:var(--t2);line-height:1.5">Sincronização entre aparelhos ainda não ativada. Assim que o Firebase estiver configurado, o login com Google aparece aqui.</div>';
+    return;
+  }
+  if(!Cloud.user){
+    el.innerHTML='<div style="font-size:12px;color:var(--t2);margin-bottom:10px;line-height:1.5">Entre com sua conta Google para sincronizar automaticamente entre celular e computador.</div><button class="btn btn-p btn-sm" onclick="Cloud.signIn()">Entrar com Google</button>';
+    return;
+  }
+  const stTxt=st==='syncing'?'sincronizando…':st==='synced'?'sincronizado ✓':st==='error'?'erro ao sincronizar':'conectado';
+  const ls=Cloud.lastSync?(' · última '+new Date(Cloud.lastSync).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})):'';
+  el.innerHTML=`<div style="font-size:12px;color:var(--t2);margin-bottom:10px;line-height:1.5">Conectado: <strong>${esc(Cloud.user.email||'usuário')}</strong><br>Status: ${stTxt}${ls}</div>
+    <div style="display:flex;gap:7px;flex-wrap:wrap">
+      <button class="btn btn-p btn-sm" onclick="Cloud.push()">⬆️ Enviar agora</button>
+      <button class="btn btn-o btn-sm" onclick="Cloud.signOut()">Sair</button>
+    </div>`;
 }
 
 // ═══ BACKUP: EXPORTAR / IMPORTAR ═══
