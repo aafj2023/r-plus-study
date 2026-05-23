@@ -635,6 +635,15 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sa
           <div style="display:flex;gap:7px;font-size:12px"><span>🔁</span><span>Ajustar o ritmo é parte do método, não derrota</span></div>
         </div>
       </div>
+      <div class="card">
+        <div class="ctitle">💾 Backup e transferência</div>
+        <div style="font-size:12px;color:var(--t2);margin-bottom:11px;line-height:1.5">Exporte um arquivo com <strong>todo</strong> o seu progresso (metas, contagens, aulas registradas e histórico). Guarde-o como segurança ou abra-o em outro aparelho para continuar de onde parou.</div>
+        <div style="display:flex;gap:7px;flex-wrap:wrap">
+          <button class="btn btn-p btn-sm" onclick="exportData()">⬇️ Exportar dados</button>
+          <button class="btn btn-o btn-sm" onclick="triggerImport()">⬆️ Importar dados</button>
+          <input type="file" id="importFile" accept="application/json,.json" style="display:none" onchange="importData(event)">
+        </div>
+      </div>
       <div class="card" style="border:1px solid #fca5a5">
         <div class="ctitle" style="color:var(--d)">⚠ Reiniciar</div>
         <div style="display:flex;gap:7px;flex-wrap:wrap">
@@ -798,7 +807,41 @@ const Store=(()=>{
     m.migratedV1=true;setMeta(m);
   }
 
-  return {init,addLesson,updateLesson,deleteLesson,getLessons,addQuestionRec,getQuestions,setSetting,getSetting,putSnapshot,
+  // ── Backup: exportar/importar tudo ──
+  async function exportAll(){
+    const out={meta:meta(),appState:D};
+    if(mode==='idb'){
+      out.lessonsHistory=await db.lessonsHistory.toArray();
+      out.questionsHistory=await db.questionsHistory.toArray();
+      out.weeklySnapshots=await db.weeklySnapshots.toArray();
+      out.settings=await db.settings.toArray();
+      out.streaks=await db.streaks.toArray();
+    }else{
+      out.lessonsHistory=lsGet(LSK.lessons);
+      out.questionsHistory=lsGet(LSK.questions);
+      const m=meta();out.weeklySnapshots=m.snaps?Object.values(m.snaps):[];
+      out.settings=[];out.streaks=[];
+    }
+    return out;
+  }
+  async function importAll(data){
+    if(mode==='idb'){
+      await db.transaction('rw',db.lessonsHistory,db.questionsHistory,db.weeklySnapshots,db.settings,db.streaks,async()=>{
+        await Promise.all([db.lessonsHistory.clear(),db.questionsHistory.clear(),db.weeklySnapshots.clear(),db.settings.clear(),db.streaks.clear()]);
+        if(data.lessonsHistory&&data.lessonsHistory.length)await db.lessonsHistory.bulkPut(data.lessonsHistory);
+        if(data.questionsHistory&&data.questionsHistory.length)await db.questionsHistory.bulkPut(data.questionsHistory);
+        if(data.weeklySnapshots&&data.weeklySnapshots.length)await db.weeklySnapshots.bulkPut(data.weeklySnapshots);
+        if(data.settings&&data.settings.length)await db.settings.bulkPut(data.settings);
+        if(data.streaks&&data.streaks.length)await db.streaks.bulkPut(data.streaks);
+      });
+    }else{
+      lsSet(LSK.lessons,data.lessonsHistory||[]);
+      lsSet(LSK.questions,data.questionsHistory||[]);
+    }
+    if(data.meta)setMeta(data.meta);
+  }
+
+  return {init,addLesson,updateLesson,deleteLesson,getLessons,addQuestionRec,getQuestions,setSetting,getSetting,putSnapshot,exportAll,importAll,
     get mode(){return mode;},get ready(){return ready;}};
 })();
 
@@ -1325,6 +1368,37 @@ async function renderTimeline(){
     }).join('');
     return head+rows;
   }).join('')+`<div style="font-size:12px;color:var(--t2);text-align:center;margin-top:14px;padding-top:10px;border-top:1px solid var(--bd)">Total acumulado: <strong>${all.length}</strong> aulas registradas</div>`;
+}
+
+// ═══ BACKUP: EXPORTAR / IMPORTAR ═══
+async function exportData(){
+  let data={appState:D};
+  try{if(typeof Store!=='undefined'&&Store.ready)data=await Store.exportAll();}catch(e){}
+  data.appState=D;
+  const bundle={app:'rplus-study',version:1,exportedAt:new Date().toISOString(),data};
+  try{
+    const blob=new Blob([JSON.stringify(bundle,null,2)],{type:'application/json'});
+    const url=URL.createObjectURL(blob),a=document.createElement('a');
+    a.href=url;a.download='rplus-backup-'+today()+'.json';
+    document.body.appendChild(a);a.click();a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url),1500);
+  }catch(e){alert('Não foi possível gerar o backup neste navegador.');}
+}
+function triggerImport(){const f=document.getElementById('importFile');if(f){f.value='';f.click();}}
+async function importData(ev){
+  const file=ev.target.files&&ev.target.files[0];if(!file)return;
+  try{
+    const text=await file.text();const bundle=JSON.parse(text);
+    const data=(bundle&&bundle.data)?bundle.data:bundle;
+    if(!data||typeof data.appState!=='object'||data.appState===null){alert('Arquivo inválido: não parece um backup do R+ Study.');ev.target.value='';return;}
+    if(!confirm('Importar este backup vai SUBSTITUIR os dados deste aparelho pelos do arquivo. Continuar?')){ev.target.value='';return;}
+    D=Object.assign(def(),data.appState);
+    localStorage.setItem(SK,JSON.stringify(D));
+    try{if(typeof Store!=='undefined'&&Store.ready)await Store.importAll(data);}catch(e){}
+    ev.target.value='';
+    alert('Backup importado com sucesso! O app vai recarregar.');
+    location.reload();
+  }catch(e){alert('Não foi possível ler o arquivo. Verifique se é um backup .json válido do R+ Study.');ev.target.value='';}
 }
 
 // chamado quando o Store/IndexedDB termina de inicializar
