@@ -1005,13 +1005,18 @@ const Cloud=(()=>{
   async function checkAccess(u){
     if(!u)return false;
     const email=(u.email||'').toLowerCase();
-    if(MASTER_EMAILS.indexOf(email)>-1){try{localStorage.setItem(LS_ACCESS,'1');}catch(e){}return true;}
+    if(MASTER_EMAILS.indexOf(email)>-1){try{localStorage.setItem(LS_ACCESS,u.uid);}catch(e){}return true;}
     try{
       const d=await dbF.collection('allowed_users').doc(email).get();
       const ok=d.exists&&d.data().enabled===true;
-      try{localStorage.setItem(LS_ACCESS,ok?'1':'0');}catch(e){}
+      try{localStorage.setItem(LS_ACCESS,ok?u.uid:'');}catch(e){}
       return ok;
-    }catch(e){return localStorage.getItem(LS_ACCESS)==='1';} // offline: não trava quem já entrou
+    }catch(e){
+      // "permission-denied" (regras) ou doc inexistente = NÃO autorizado (não usa cache).
+      if(e&&e.code==='permission-denied')return false;
+      // só erro de rede/offline libera — e somente para a MESMA conta já aprovada antes
+      return localStorage.getItem(LS_ACCESS)===u.uid;
+    }
   }
   async function addAllowed(email){email=(email||'').trim().toLowerCase();if(!email||!dbF)throw new Error('email/db');await dbF.collection('allowed_users').doc(email).set({email,enabled:true,role:'tester',addedBy:emailLC(),addedAt:Date.now()});}
   async function setAllowedEnabled(email,en){email=(email||'').trim().toLowerCase();if(!dbF)return;await dbF.collection('allowed_users').doc(email).set({enabled:!!en},{merge:true});}
@@ -1921,6 +1926,7 @@ async function resetAll(){
   try{if(typeof Cloud!=='undefined'&&Cloud.user)await Cloud.wipeCloud();}catch(e){}
   Object.keys(localStorage).filter(k=>k.indexOf('rplus')===0).forEach(k=>localStorage.removeItem(k));
   try{if(window.Dexie)await Dexie.delete('rplusDB');}catch(e){}
+  try{if(typeof Cloud!=='undefined')await Cloud.signOut();}catch(e){} // desloga p/ a tela de login reaparecer
   location.reload();
 }
 
