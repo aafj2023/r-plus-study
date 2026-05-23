@@ -1869,7 +1869,8 @@ function nextMonthHtml(nm){
 }
 function examHtml(ep){
   if(ep.wl===0)return '<div class="dm tod" style="margin:0"><div class="di"><span class="da">📅</span><span>É a reta final — a prova é nesta semana. Foco total em revisão e questões!</span></div></div>';
-  const st=ep.donePct>=ep.plannedPct-5?(ep.donePct>ep.plannedPct+5?'ahead':'ontrack'):'behind';
+  // pílula = mesma lógica do texto ("vai dar tempo de terminar?"), pra não contradizer
+  const st=ep.onTime===false?'behind':(ep.donePct>=ep.plannedPct+8?'ahead':'ontrack');
   return `<div style="display:flex;justify-content:space-between;align-items:center;font-size:12px;margin-bottom:5px"><span style="font-weight:700">Curso: ${ep.cum}/${ep.total} (${ep.donePct}%)</span>${statusPill(st)}</div>
   <div class="pwrap" style="position:relative;height:10px"><div class="pfill" style="background:#10b981;width:${ep.donePct}%"></div><div class="pmark" style="left:${ep.plannedPct}%"></div></div>
   <div style="font-size:11px;color:var(--t2);margin-top:6px;line-height:1.5">Planejado p/ hoje: <strong>${ep.plannedPct}%</strong> · <strong>${ep.wl}</strong> semanas p/ prova.<br>${ep.onTime!==false?`✅ No ritmo — conclusão prevista <strong>${fmtDate(ep.finishDate)}</strong>.`:`⚠️ Precisa de <strong>${ep.req||aulaGoal()} aulas/sem</strong> p/ terminar a tempo (ritmo atual ~${Math.round(ep.p)}/sem).`}</div>`;
