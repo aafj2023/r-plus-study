@@ -1047,8 +1047,10 @@ function risk(){
   const w=weeksLeft();if(!w)return'med';
   const pr=proj();
   if(pr.req===null)return'med';
-  if(pr.req>aulaGoal()*1.5)return'hi';
-  if(pr.req>aulaGoal()*1.15)return'med';
+  const ep=(typeof examPacing==='function')?examPacing():null;
+  const gap=ep?(ep.plannedPct-ep.donePct):0; // atraso vs curva planejada
+  if(pr.req>aulaGoal()*1.5||gap>=25)return'hi';
+  if(pr.req>aulaGoal()*1.15||gap>=12)return'med';
   return'low';
 }
 const fmtDate=d=>d?`${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`:'—';
@@ -1331,7 +1333,9 @@ function discColor(name){name=name||'Geral';if(!_discColors[name])_discColors[na
 
 // ═══ AULAS GRANULARES (modal) ═══
 let editingLessonId=null,editingLessonOldDate=null;
+function closeAllModals(){document.querySelectorAll('.modal.on').forEach(m=>m.classList.remove('on'));}
 function openLessonModal(rec){
+  closeAllModals();
   editingLessonId=rec?rec.id:null;editingLessonOldDate=rec?rec.date:null;
   document.getElementById('lmodTitle').textContent=rec?'✏️ Editar aula':'📝 Registrar aula';
   document.getElementById('lfDate').value=rec?rec.date:today();
@@ -1495,7 +1499,7 @@ async function renderCourseMap(){
 
 // ═══ TIMELINE (modal) ═══
 let tlMode='week';
-function openTimeline(){document.getElementById('tmod').classList.add('on');renderTimeline();}
+function openTimeline(){closeAllModals();document.getElementById('tmod').classList.add('on');renderTimeline();}
 function closeTimeline(){document.getElementById('tmod').classList.remove('on');}
 function setTLMode(m){tlMode=m;document.getElementById('tlWeek').classList.toggle('on',m==='week');document.getElementById('tlDisc').classList.toggle('on',m==='disc');renderTimeline();}
 async function renderTimeline(){
@@ -1688,7 +1692,7 @@ function renderReviews(){
 
 // ── Reconstrução retroativa ──
 let retroRowId=0;
-function openRetro(){const c=document.getElementById('retroRows');if(c){c.innerHTML='';retroRowId=0;addRetroRow();}document.getElementById('rmod').classList.add('on');fillDiscList();}
+function openRetro(){closeAllModals();const c=document.getElementById('retroRows');if(c){c.innerHTML='';retroRowId=0;addRetroRow();}document.getElementById('rmod').classList.add('on');fillDiscList();}
 function closeRetro(){document.getElementById('rmod').classList.remove('on');}
 function addRetroRow(disc,count,faixa){
   const c=document.getElementById('retroRows');if(!c)return;
@@ -1756,10 +1760,11 @@ function nextMonthHtml(nm){
   <div style="font-size:11px;color:var(--t2);margin-top:6px;line-height:1.5">No ritmo atual, no fim do mês que vem você estará em ~<strong>${nm.projPct}%</strong> (plano: ~${nm.plannedPct}%).${nm.behind?` Para alcançar, mire em <strong>${req} aulas/sem</strong>.`:' Trajetória saudável. 👏'}</div>`;
 }
 function examHtml(ep){
-  const st=ep.donePct>=ep.plannedPct?'ontrack':'behind';
+  if(ep.wl===0)return '<div class="dm tod" style="margin:0"><div class="di"><span class="da">📅</span><span>É a reta final — a prova é nesta semana. Foco total em revisão e questões!</span></div></div>';
+  const st=ep.donePct>=ep.plannedPct-5?(ep.donePct>ep.plannedPct+5?'ahead':'ontrack'):'behind';
   return `<div style="display:flex;justify-content:space-between;align-items:center;font-size:12px;margin-bottom:5px"><span style="font-weight:700">Curso: ${ep.cum}/${ep.total} (${ep.donePct}%)</span>${statusPill(st)}</div>
   <div class="pwrap" style="position:relative;height:10px"><div class="pfill" style="background:#10b981;width:${ep.donePct}%"></div><div class="pmark" style="left:${ep.plannedPct}%"></div></div>
-  <div style="font-size:11px;color:var(--t2);margin-top:6px;line-height:1.5">Planejado p/ hoje: <strong>${ep.plannedPct}%</strong> · <strong>${ep.wl}</strong> semanas p/ prova.<br>${ep.onTime?`✅ No ritmo — conclusão prevista <strong>${fmtDate(ep.finishDate)}</strong>.`:`⚠️ Precisa de <strong>${ep.req} aulas/sem</strong> p/ terminar a tempo (ritmo atual ~${Math.round(ep.p)}/sem).`}</div>`;
+  <div style="font-size:11px;color:var(--t2);margin-top:6px;line-height:1.5">Planejado p/ hoje: <strong>${ep.plannedPct}%</strong> · <strong>${ep.wl}</strong> semanas p/ prova.<br>${ep.onTime!==false?`✅ No ritmo — conclusão prevista <strong>${fmtDate(ep.finishDate)}</strong>.`:`⚠️ Precisa de <strong>${ep.req||aulaGoal()} aulas/sem</strong> p/ terminar a tempo (ritmo atual ~${Math.round(ep.p)}/sem).`}</div>`;
 }
 function renderHorizons(){
   const hw=document.getElementById('hWeek');
