@@ -176,6 +176,20 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sa
 .chipbtn{padding:6px 13px;border-radius:20px;font-size:12px;font-weight:700;border:1.5px solid var(--bd);background:#fff;color:var(--t2);cursor:pointer}
 .chipbtn.on{background:var(--p);border-color:var(--p);color:#fff}
 
+/* GATE (tela de entrada / login) */
+#gate{position:fixed;inset:0;z-index:300;background:linear-gradient(135deg,#4338ca,#7c3aed);color:#fff;display:flex;align-items:center;justify-content:center;padding:30px 24px}
+.gate-inner{max-width:420px;width:100%;text-align:center}
+.gate-logo{font-size:60px;margin-bottom:6px;line-height:1}
+.gate-title{font-size:34px;font-weight:900;margin-bottom:4px}
+.gate-tag{font-size:13px;font-weight:700;opacity:.75;text-transform:uppercase;letter-spacing:1px;margin-bottom:22px}
+.gate-sub{font-size:15px;opacity:.92;line-height:1.55;margin-bottom:28px}
+.gbtn{display:inline-flex;align-items:center;gap:11px;background:#fff;color:#1e293b;border:none;border-radius:14px;padding:14px 24px;font-size:15px;font-weight:800;cursor:pointer;font-family:inherit;box-shadow:0 8px 24px rgba(0,0,0,.2)}
+.gbtn:active{transform:scale(.97)}
+.gg{width:24px;height:24px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:16px;color:#4285F4;box-shadow:inset 0 0 0 1px #e2e8f0}
+.gate-foot{font-size:12px;opacity:.72;margin-top:24px;line-height:1.5}
+.gate-loading{font-size:14px;opacity:.85}
+.gate-err{font-size:13px;opacity:.96;background:rgba(255,255,255,.13);border-radius:11px;padding:13px;line-height:1.5}
+
 /* ONBOARDING */
 #ob{position:fixed;inset:0;background:#fff;z-index:200;overflow:hidden}
 .ob-slides{display:flex;width:400%;transition:transform .4s cubic-bezier(.4,0,.2,1)}
@@ -204,6 +218,18 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sa
 </style>
 </head>
 <body>
+
+<!-- ═══════════ GATE / LOGIN ═══════════ -->
+<div id="gate">
+  <div class="gate-inner">
+    <div class="gate-logo">📚</div>
+    <div class="gate-title">R+ Study</div>
+    <div class="gate-tag">Residência médica</div>
+    <div class="gate-sub">Seu plano de estudos com aulas, questões e projeção até a prova — sincronizado em todos os seus aparelhos.</div>
+    <div id="gateAction"><div class="gate-loading">Carregando…</div></div>
+    <div class="gate-foot">Entre com sua conta Google. Seus dados ficam protegidos e sincronizados na sua conta.</div>
+  </div>
+</div>
 
 <!-- ═══════════ ONBOARDING ═══════════ -->
 <div id="ob">
@@ -863,61 +889,69 @@ const Store=(()=>{
 // ═══ CLOUD: login Google + sincronização (Firebase/Firestore) ═══
 const Cloud=(()=>{
   const V='10.12.2',BASE='https://www.gstatic.com/firebasejs/'+V+'/';
-  let auth=null,dbF=null,user=null,available=false,status='unconfigured',pushTimer=null,lastSync=null;
-  function loadSeq(urls,cb){let i=0;(function next(){if(i>=urls.length){cb();return;}const s=document.createElement('script');s.src=urls[i++];s.onload=next;s.onerror=()=>cb(new Error('falha ao carregar Firebase'));document.head.appendChild(s);})();}
+  const LS_SYNC='rplus7_cloud_sync',LS_UID='rplus7_cloud_uid';
+  let auth=null,dbF=null,user=null,available=false,status='unconfigured',pushTimer=null,authReady=false;
+  let lastSync=+(localStorage.getItem(LS_SYNC)||0);
+  function setLastSync(t){lastSync=t||Date.now();try{localStorage.setItem(LS_SYNC,''+lastSync);}catch(e){}}
+  function ui(){try{if(typeof refreshAuthUI==='function')refreshAuthUI();}catch(e){}}
+  async function whenStoreReady(){for(let i=0;i<80&&!(typeof Store!=='undefined'&&Store.ready);i++){await new Promise(r=>setTimeout(r,50));}}
+  function loadSeq(urls,cb){let i=0;(function next(){if(i>=urls.length){cb();return;}const s=document.createElement('script');s.src=urls[i++];s.onload=next;s.onerror=()=>cb(new Error('falha ao carregar'));document.head.appendChild(s);})();}
   function init(){
     const CFG=window.RPLUS_FIREBASE;
-    if(!CFG){available=false;status='unconfigured';renderCloud();return;}
+    if(!CFG){available=false;status='unconfigured';ui();return;}
+    status='loading';ui();
     loadSeq([BASE+'firebase-app-compat.js',BASE+'firebase-auth-compat.js',BASE+'firebase-firestore-compat.js'],err=>{
-      if(err||typeof firebase==='undefined'){available=false;status='error';renderCloud();return;}
+      if(err||typeof firebase==='undefined'){available=false;status='error';ui();return;}
       try{
         firebase.initializeApp(CFG);auth=firebase.auth();dbF=firebase.firestore();available=true;status='off';
-        auth.onAuthStateChanged(u=>{user=u;onAuthChange();});
+        auth.onAuthStateChanged(u=>{user=u;authReady=true;onAuthChange();});
       }catch(e){available=false;status='error';}
-      renderCloud();
+      ui();
     });
   }
   async function signIn(){
-    if(!available){alert('A sincronização ainda não está configurada.');return;}
+    if(!available){alert('Login indisponível no momento. Verifique sua internet e tente de novo.');return;}
     try{const p=new firebase.auth.GoogleAuthProvider();await auth.signInWithPopup(p);}
     catch(e){alert('Não foi possível entrar: '+((e&&e.message)||e));}
   }
-  async function signOut(){try{if(auth)await auth.signOut();}catch(e){}}
+  async function signOut(){try{if(auth)await auth.signOut();}catch(e){}setLastSync(0);}
+  async function wipeCloud(){try{if(user&&dbF)await dbF.collection('backups').doc(user.uid).delete();}catch(e){}setLastSync(0);}
   async function pull(){if(!user)return null;const d=await dbF.collection('backups').doc(user.uid).get();return d.exists?d.data():null;}
   async function push(){
     if(!user||!available)return;
-    status='syncing';renderCloud();
+    await whenStoreReady();
+    status='syncing';ui();
     try{
       let data={appState:D};try{if(Store.ready)data=await Store.exportAll();}catch(e){}
       data.appState=D;
-      await dbF.collection('backups').doc(user.uid).set({data,updatedAt:Date.now(),email:user.email||''});
-      lastSync=Date.now();status='synced';
+      const t=Date.now();
+      await dbF.collection('backups').doc(user.uid).set({data,updatedAt:t,email:user.email||''});
+      setLastSync(t);status='synced';
     }catch(e){status='error';}
-    renderCloud();
+    ui();
   }
   function schedulePush(){if(!user||!available)return;clearTimeout(pushTimer);pushTimer=setTimeout(push,1500);}
-  async function applyRemote(data){
+  async function applyRemote(data,remoteUpdatedAt){
     if(!data||!data.appState)return;
+    await whenStoreReady();
     D=Object.assign(def(),data.appState);localStorage.setItem(SK,JSON.stringify(D));
     try{if(Store.ready)await Store.importAll(data);}catch(e){}
+    setLastSync(remoteUpdatedAt||Date.now());status='synced';
     renderAll();if(typeof onStoreReady==='function')onStoreReady();
-    lastSync=Date.now();status='synced';renderCloud();
+    ui();
   }
   async function onAuthChange(){
-    renderCloud();
-    if(!user)return;
+    ui();
+    if(!user){if(typeof showGate==='function')showGate();return;}
+    try{const prev=localStorage.getItem(LS_UID);if(prev!==user.uid){setLastSync(0);localStorage.setItem(LS_UID,user.uid);}}catch(e){}
+    await whenStoreReady();
     let remote=null;try{remote=await pull();}catch(e){}
-    const localHasData=(Object.keys(D.aulaLog||{}).length>0)||(Object.keys(D.questLog||{}).length>0);
-    if(remote&&remote.data){
-      if(!localHasData){await applyRemote(remote.data);}
-      else{
-        const useCloud=confirm('Você tem dados na nuvem e neste aparelho.\n\nOK = usar os da NUVEM (substitui este aparelho).\nCancelar = enviar os DESTE aparelho para a nuvem.');
-        if(useCloud)await applyRemote(remote.data);else await push();
-      }
-    }else{await push();}
+    if(remote&&remote.data&&(remote.updatedAt||0)>lastSync){await applyRemote(remote.data,remote.updatedAt);}
+    else{await push();}
+    if(typeof enterApp==='function')enterApp();
   }
-  return {init,signIn,signOut,push,schedulePush,
-    get user(){return user;},get available(){return available;},get status(){return status;},get lastSync(){return lastSync;}};
+  return {init,signIn,signOut,wipeCloud,push,schedulePush,
+    get user(){return user;},get available(){return available;},get status(){return status;},get lastSync(){return lastSync;},get authReady(){return authReady;}};
 })();
 
 // ═══ LOG HELPERS ═══
@@ -1025,8 +1059,6 @@ function launchApp(){
   document.getElementById('ob').style.display='none';
   document.getElementById('app').classList.add('on');
   checkWeekReset();renderAll();
-  Store.init().then(()=>{if(typeof onStoreReady==='function')onStoreReady();}).catch(()=>{});
-  try{Cloud.init();}catch(e){}
 }
 function renderAll(){renderHeader();renderToday();renderAulas();renderQuestoes();renderStats();renderPlan();}
 
@@ -1446,14 +1478,43 @@ async function renderTimeline(){
   }).join('')+`<div style="font-size:12px;color:var(--t2);text-align:center;margin-top:14px;padding-top:10px;border-top:1px solid var(--bd)">Total acumulado: <strong>${all.length}</strong> aulas registradas</div>`;
 }
 
-// ═══ NUVEM (UI) ═══
+// ═══ NUVEM (UI) + GATE ═══
+function refreshAuthUI(){try{renderGate();}catch(e){}try{renderCloud();}catch(e){}}
+
+function renderGate(){
+  const el=document.getElementById('gateAction');if(!el||typeof Cloud==='undefined')return;
+  const st=Cloud.status;
+  if(!Cloud.available){
+    if(st==='error')el.innerHTML='<div class="gate-err">Não foi possível conectar para o login. Verifique sua internet.</div><button class="gbtn" style="margin-top:12px" onclick="Cloud.init();renderGate()">Tentar de novo</button>';
+    else el.innerHTML='<div class="gate-loading">Carregando login…</div>';
+    return;
+  }
+  if(!Cloud.user){
+    if(!Cloud.authReady){el.innerHTML='<div class="gate-loading">Carregando…</div>';return;}
+    el.innerHTML='<button class="gbtn" onclick="Cloud.signIn()"><span class="gg">G</span> Entrar com Google</button>';
+    return;
+  }
+  el.innerHTML='<div class="gate-loading">Entrando…</div>';
+}
+function showGate(){
+  const g=document.getElementById('gate');if(g)g.style.display='flex';
+  const a=document.getElementById('app');if(a)a.classList.remove('on');
+  const o=document.getElementById('ob');if(o)o.style.display='none';
+  renderGate();
+}
+function enterApp(){
+  const g=document.getElementById('gate');if(g)g.style.display='none';
+  if(D.done){launchApp();}
+  else{const o=document.getElementById('ob');if(o)o.style.display='block';obStep=0;obUI();}
+}
+
 function renderCloud(){
   const el=document.getElementById('cloudBody');if(!el||typeof Cloud==='undefined')return;
   const st=Cloud.status;
   if(!Cloud.available){
     el.innerHTML=st==='error'
       ?'<div style="font-size:12px;color:var(--d);line-height:1.5">Não foi possível carregar a sincronização agora. Verifique a conexão e recarregue.</div>'
-      :'<div style="font-size:12px;color:var(--t2);line-height:1.5">Sincronização entre aparelhos ainda não ativada. Assim que o Firebase estiver configurado, o login com Google aparece aqui.</div>';
+      :'<div style="font-size:12px;color:var(--t2);line-height:1.5">Conectando à sua conta…</div>';
     return;
   }
   if(!Cloud.user){
@@ -1523,10 +1584,18 @@ function resetWeek(){if(!confirm('Resetar a semana atual (zera contagens e ajust
   Object.keys(D.aulaLog).forEach(d=>{if(d>=D.weekStart)delete D.aulaLog[d];});
   Object.keys(D.questLog).forEach(d=>{if(d>=D.weekStart)delete D.questLog[d];});
   D.aulaWeekOverride=null;D.qWeekOverride=null;save();renderAll();}
-function resetAll(){if(!confirm('Apagar TUDO e recomeçar?'))return;localStorage.removeItem(SK);location.reload();}
+async function resetAll(){
+  if(!confirm('Apagar TUDO (neste aparelho E na nuvem) e recomeçar? Esta ação não pode ser desfeita.'))return;
+  try{if(typeof Cloud!=='undefined'&&Cloud.user)await Cloud.wipeCloud();}catch(e){}
+  Object.keys(localStorage).filter(k=>k.indexOf('rplus')===0).forEach(k=>localStorage.removeItem(k));
+  try{if(window.Dexie)await Dexie.delete('rplusDB');}catch(e){}
+  location.reload();
+}
 
-// ═══ INIT ═══
-if(D.done){launchApp();}
+// ═══ INIT / BOOT ═══
+showGate();
+Store.init().then(()=>{if(typeof onStoreReady==='function')onStoreReady();}).catch(()=>{});
+try{Cloud.init();}catch(e){}
 </script>
 </body>
 </html>
