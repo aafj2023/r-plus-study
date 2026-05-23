@@ -39,8 +39,9 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sa
 .hdr{background:linear-gradient(135deg,#4338ca,#7c3aed);color:#fff;padding:12px 18px 9px;flex-shrink:0}
 .hdr-row{display:flex;justify-content:space-between;align-items:center;gap:10px}
 .hdr-title{font-size:18px;font-weight:900;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.avatar{width:38px;height:38px;border-radius:50%;border:2px solid rgba(255,255,255,.7);background:rgba(255,255,255,.95);color:var(--pd);font-size:13px;font-weight:900;display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0;overflow:hidden;flex-shrink:0}
-.avatar img{width:100%;height:100%;object-fit:cover;display:none}
+.avatar{position:relative;width:38px;height:38px;border-radius:50%;border:2px solid rgba(255,255,255,.7);background:rgba(255,255,255,.95);color:var(--pd);font-size:13px;font-weight:900;cursor:pointer;padding:0;overflow:hidden;flex-shrink:0}
+.avatar span{position:absolute;inset:0;display:flex;align-items:center;justify-content:center}
+.avatar img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:none}
 .pmenu{display:none;position:fixed;top:56px;right:14px;z-index:250;background:#fff;border-radius:14px;box-shadow:0 10px 34px rgba(0,0,0,.24);width:248px;max-width:calc(100vw - 28px);padding:13px;color:var(--t)}
 .pmenu.on{display:block}
 .pmenu-name{font-size:14px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -1207,16 +1208,14 @@ function renderAvatar(){
   const u=(typeof Cloud!=='undefined')?Cloud.user:null;
   const nm=displayName();
   const initials=nm?nm.trim().slice(0,2).toUpperCase():(u&&u.email?u.email[0].toUpperCase():'R+');
-  init.textContent=initials;
-  // iniciais SEMPRE como base; a foto só aparece se carregar de verdade
-  init.style.display='';img.style.display='none';
+  init.textContent=initials; // iniciais ficam SEMPRE no fundo (sempre visíveis)
   const photo=u&&u.photoURL;
   if(photo){
-    img.onload=function(){img.style.display='';init.style.display='none';};
-    img.onerror=function(){img.style.display='none';init.style.display='';};
-    if(img.getAttribute('src')!==photo){img.setAttribute('src',photo);}
-    else if(img.complete&&img.naturalWidth>0){img.style.display='';init.style.display='none';}
-  }else{img.removeAttribute('src');}
+    img.onload=function(){if(img.naturalWidth>0)img.style.display='block';}; // foto sobrepõe só se carregar
+    img.onerror=function(){img.style.display='none';};
+    if(img.getAttribute('src')!==photo){img.style.display='none';img.setAttribute('src',photo);}
+    else if(img.complete&&img.naturalWidth>0){img.style.display='block';}
+  }else{img.style.display='none';img.removeAttribute('src');}
 }
 // ═══ MENU DE PERFIL ═══
 function toggleProfile(e){if(e)e.stopPropagation();const m=document.getElementById('profileMenu');if(!m)return;if(m.classList.contains('on')){closeProfile();return;}renderProfileMenu();m.classList.add('on');setTimeout(()=>document.addEventListener('click',outsideProfile),0);}
