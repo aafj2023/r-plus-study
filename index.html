@@ -37,8 +37,17 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sa
 
 /* HEADER */
 .hdr{background:linear-gradient(135deg,#4338ca,#7c3aed);color:#fff;padding:12px 18px 9px;flex-shrink:0}
-.hdr-row{display:flex;justify-content:space-between;align-items:center}
-.hdr-title{font-size:18px;font-weight:900}
+.hdr-row{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.hdr-title{font-size:18px;font-weight:900;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.avatar{width:38px;height:38px;border-radius:50%;border:2px solid rgba(255,255,255,.55);background:rgba(255,255,255,.18);color:#fff;font-size:13px;font-weight:800;display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0;overflow:hidden;flex-shrink:0}
+.avatar img{width:100%;height:100%;object-fit:cover;display:none}
+.pmenu{display:none;position:fixed;top:56px;right:14px;z-index:250;background:#fff;border-radius:14px;box-shadow:0 10px 34px rgba(0,0,0,.24);width:248px;max-width:calc(100vw - 28px);padding:13px;color:var(--t)}
+.pmenu.on{display:block}
+.pmenu-name{font-size:14px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pmenu-email{font-size:11px;color:var(--t2);margin-bottom:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pmenu-edit{display:flex;gap:6px;margin-bottom:10px}
+.pmenu-edit .inp{flex:1;min-width:0}
+.pmenu-item{width:100%;text-align:left;background:var(--dl);border:none;border-radius:10px;padding:10px 12px;font-size:13px;font-weight:700;color:var(--d);cursor:pointer}
 .hdr-sub{font-size:10px;opacity:.65;margin-top:1px}
 .chip{background:rgba(255,255,255,.15);border-radius:14px;padding:5px 13px;text-align:center;cursor:pointer}
 .chip-n{font-size:24px;font-weight:900;line-height:1}
@@ -206,8 +215,8 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sa
 
 /* ONBOARDING */
 #ob{position:fixed;inset:0;background:#fff;z-index:200;overflow:hidden}
-.ob-slides{display:flex;width:400%;transition:transform .4s cubic-bezier(.4,0,.2,1)}
-.ob-slide{width:25%;min-height:100vh;padding:32px 22px 100px;display:flex;flex-direction:column}
+.ob-slides{display:flex;width:500%;transition:transform .4s cubic-bezier(.4,0,.2,1)}
+.ob-slide{width:20%;min-height:100vh;padding:32px 22px 100px;display:flex;flex-direction:column}
 .ob-emoji{font-size:50px;margin-bottom:12px}
 .ob-h{font-size:24px;font-weight:900;line-height:1.2;margin-bottom:6px}
 .ob-sub{font-size:14px;color:var(--t2);margin-bottom:20px;line-height:1.5}
@@ -248,6 +257,15 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sa
 <!-- ═══════════ ONBOARDING ═══════════ -->
 <div id="ob">
   <div class="ob-slides" id="obSlides">
+
+    <!-- 0: Nome -->
+    <div class="ob-slide">
+      <div class="ob-emoji">👋</div>
+      <div class="ob-h">Como você quer ser chamada?</div>
+      <div class="ob-sub">É assim que vou te cumprimentar todo dia. Pode ser só o primeiro nome ou um apelido.</div>
+      <input type="text" class="ob-inp" id="obName" placeholder="Seu nome ou apelido" maxlength="40" autocomplete="off"/>
+      <div class="ob-hint">💡 Você pode mudar depois no ícone de perfil.</div>
+    </div>
 
     <!-- 1: Data -->
     <div class="ob-slide">
@@ -317,7 +335,7 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sa
     <button class="ob-back" id="obBackBtn" onclick="obBack()">← Voltar</button>
     <div class="ob-dots">
       <div class="od on" id="od0"></div><div class="od" id="od1"></div>
-      <div class="od" id="od2"></div><div class="od" id="od3"></div>
+      <div class="od" id="od2"></div><div class="od" id="od3"></div><div class="od" id="od4"></div>
     </div>
     <button class="ob-btn" id="obNextBtn" onclick="obNext()">Continuar →</button>
   </div>
@@ -327,10 +345,13 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sa
 <div id="app">
   <div class="hdr">
     <div class="hdr-row">
-      <div>
+      <div style="min-width:0;flex:1">
         <div class="hdr-title" id="hTitle">📚 R+</div>
         <div class="hdr-sub" id="hSub">Motor de decisão</div>
       </div>
+      <button class="avatar" id="avatarBtn" onclick="toggleProfile(event)" aria-label="Perfil e conta">
+        <span id="avatarInit">R+</span><img id="avatarImg" alt="" referrerpolicy="no-referrer">
+      </button>
       <div class="chip" onclick="goTab('Plano')" title="Ir para configurações">
         <div class="chip-n" id="hDias">—</div>
         <div class="chip-l">dias</div>
@@ -704,6 +725,17 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sa
   </nav>
 </div>
 
+<!-- MENU DE PERFIL -->
+<div id="profileMenu" class="pmenu">
+  <div class="pmenu-name" id="pmName">—</div>
+  <div class="pmenu-email" id="pmEmail">—</div>
+  <div class="pmenu-edit">
+    <input type="text" class="inp inp-sm" id="pmInput" placeholder="Como quer ser chamada?" maxlength="40" autocomplete="off">
+    <button class="btn btn-p btn-sm" onclick="saveUserName()">Salvar</button>
+  </div>
+  <button class="pmenu-item" onclick="closeProfile();Cloud.signOut()">🚪 Sair desta conta</button>
+</div>
+
 <!-- MODAL: registrar/editar aula -->
 <div class="modal" id="lmod">
   <div class="msheet">
@@ -769,7 +801,7 @@ const today=()=>ymd(new Date());
 const mondayStr=()=>ymd(monday(new Date()));
 
 function def(){return{
-  done:false,provaDate:'',
+  done:false,provaDate:'',userName:'',
   aulaGoal:6,qGoal:100,totalAulas:264,lessonMin:40,reviewBudget:20,
   aulaWeekOverride:null,qWeekOverride:null,
   aulaLog:{},questLog:{},
@@ -1106,18 +1138,19 @@ function obSum(){
   st.textContent=`${w} semanas · ${tot} aulas no total · ${g} aulas/sem · ${qg} questões/sem`;
 }
 function obNext(){
-  if(obStep===0){const d=document.getElementById('obDate').value;if(!d){document.getElementById('obDate').style.borderColor='var(--d)';return;}D.provaDate=d;}
-  if(obStep===1){D.totalAulas=+document.getElementById('obTotal').value||264;}
-  if(obStep===2){D.aulaGoal=+document.getElementById('obGoal').value||6;}
-  if(obStep===3){D.qGoal=+document.getElementById('obQGoal').value||100;D.done=true;D.firstWeek=mondayStr();D.weekStart=mondayStr();save();launchApp();return;}
+  if(obStep===0){D.userName=(document.getElementById('obName').value||'').trim().slice(0,40);}
+  if(obStep===1){const d=document.getElementById('obDate').value;if(!d){document.getElementById('obDate').style.borderColor='var(--d)';return;}D.provaDate=d;}
+  if(obStep===2){D.totalAulas=+document.getElementById('obTotal').value||264;}
+  if(obStep===3){D.aulaGoal=+document.getElementById('obGoal').value||6;}
+  if(obStep===4){D.qGoal=+document.getElementById('obQGoal').value||100;D.done=true;D.firstWeek=mondayStr();D.weekStart=mondayStr();save();launchApp();return;}
   obStep++;obUI();save();
 }
 function obBack(){if(obStep>0){obStep--;obUI();}}
 function obUI(){
-  document.getElementById('obSlides').style.transform=`translateX(-${obStep*25}%)`;
-  for(let i=0;i<4;i++)document.getElementById('od'+i).className='od'+(i===obStep?' on':'');
+  document.getElementById('obSlides').style.transform=`translateX(-${obStep*20}%)`;
+  for(let i=0;i<5;i++)document.getElementById('od'+i).className='od'+(i===obStep?' on':'');
   document.getElementById('obBackBtn').style.display=obStep>0?'block':'none';
-  document.getElementById('obNextBtn').textContent=obStep===3?'🚀 Começar!':'Continuar →';
+  document.getElementById('obNextBtn').textContent=obStep===4?'🚀 Começar!':'Continuar →';
   obSum();
 }
 
@@ -1130,18 +1163,44 @@ function launchApp(){
 function renderAll(){renderHeader();renderToday();renderAulas();renderQuestoes();renderStats();renderPlan();}
 
 // ═══ HEADER ═══
+function googleFirst(){try{const dn=(typeof Cloud!=='undefined'&&Cloud.user)?Cloud.user.displayName:'';return dn?(''+dn).trim().split(/\s+/)[0]:'';}catch(e){return '';}}
+function displayName(){return ((D.userName&&D.userName.trim())||googleFirst()||'').slice(0,40);}
 function renderHeader(){
   const dl=daysLeft(),p=pctDone(),r=risk();
   document.getElementById('hDias').textContent=dl!==null?dl:'—';
   const h=new Date().getHours();
-  document.getElementById('hTitle').textContent=(h<12?'Bom dia':h<18?'Boa tarde':'Boa noite')+' 👋';
+  const nm=displayName();
+  document.getElementById('hTitle').textContent=(h<12?'Bom dia':h<18?'Boa tarde':'Boa noite')+(nm?', '+nm:'')+' 👋';
   document.getElementById('hSub').textContent=p+'% do curso concluído';
   document.getElementById('hProgF').style.width=p+'%';
   const rp=document.getElementById('rPill');
   rp.className='rpill '+(r==='low'?'r-low':r==='med'?'r-med':'r-hi');
   rp.textContent=r==='low'?'✅ No ritmo':r==='med'?'⚡ Atenção':'🔴 Crítico';
   document.getElementById('hRight').textContent=weekAulas()+'/'+aulaGoal()+' aulas · '+weekQ()+'/'+qGoal()+' Q';
+  renderAvatar();
 }
+function renderAvatar(){
+  const init=document.getElementById('avatarInit'),img=document.getElementById('avatarImg');
+  if(!init||!img)return;
+  const u=(typeof Cloud!=='undefined')?Cloud.user:null;
+  const nm=displayName();
+  const initials=nm?nm.trim().slice(0,2).toUpperCase():(u&&u.email?u.email[0].toUpperCase():'R+');
+  init.textContent=initials;
+  const photo=u&&u.photoURL;
+  if(photo){img.onerror=function(){img.style.display='none';init.style.display='';};img.style.display='';init.style.display='none';if(img.src!==photo)img.src=photo;}
+  else{img.style.display='none';init.style.display='';}
+}
+// ═══ MENU DE PERFIL ═══
+function toggleProfile(e){if(e)e.stopPropagation();const m=document.getElementById('profileMenu');if(!m)return;if(m.classList.contains('on')){closeProfile();return;}renderProfileMenu();m.classList.add('on');setTimeout(()=>document.addEventListener('click',outsideProfile),0);}
+function closeProfile(){const m=document.getElementById('profileMenu');if(m)m.classList.remove('on');document.removeEventListener('click',outsideProfile);}
+function outsideProfile(e){const m=document.getElementById('profileMenu'),a=document.getElementById('avatarBtn');if(m&&!m.contains(e.target)&&a&&!a.contains(e.target))closeProfile();}
+function renderProfileMenu(){
+  const u=(typeof Cloud!=='undefined')?Cloud.user:null;
+  document.getElementById('pmName').textContent=displayName()||'Sua conta';
+  document.getElementById('pmEmail').textContent=(u&&u.email)||'';
+  document.getElementById('pmInput').value=D.userName||'';
+}
+function saveUserName(){D.userName=(document.getElementById('pmInput').value||'').trim().slice(0,40);save();closeProfile();renderHeader();}
 
 // ═══ TODAY ═══
 function renderToday(){
@@ -1811,6 +1870,7 @@ function onStoreReady(){renderLessonHist();fillDiscList();renderCourseMap();rend
 // ═══ TABS ═══
 const TABS={Hoje:{p:'pHoje',n:'nbHoje'},Aulas:{p:'pAulas',n:'nbAulas'},Questoes:{p:'pQuestoes',n:'nbQuestoes'},Stats:{p:'pStats',n:'nbStats'},Plano:{p:'pPlano',n:'nbPlano'}};
 function goTab(name){
+  if(typeof closeProfile==='function')closeProfile();
   Object.entries(TABS).forEach(([k,v])=>{
     document.getElementById(v.p).classList.toggle('on',k===name);
     document.getElementById(v.n).classList.toggle('on',k===name);
