@@ -1,5 +1,5 @@
 // R+ Study — Service Worker (PWA offline)
-const CACHE = 'rplus-v1';
+const CACHE = 'rplus-v2';
 const PRECACHE = [
   './',
   './index.html',
