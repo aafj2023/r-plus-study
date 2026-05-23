@@ -750,9 +750,12 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sa
 <script>
 // ═══ DATA ═══
 const SK='rplus7';
+// datas em horário LOCAL (evita virada de dia às 21h no fuso do Brasil/UTC-3)
+function ymd(d){const x=new Date(d);return `${x.getFullYear()}-${String(x.getMonth()+1).padStart(2,'0')}-${String(x.getDate()).padStart(2,'0')}`;}
+function parseYMD(s){const p=(''+s).split('-');return new Date(+p[0],(+p[1]||1)-1,(+p[2]||1));}
 function monday(d){const x=new Date(d),dy=x.getDay();x.setDate(x.getDate()-dy+(dy===0?-6:1));return x;}
-const today=()=>new Date().toISOString().slice(0,10);
-const mondayStr=()=>monday(new Date()).toISOString().slice(0,10);
+const today=()=>ymd(new Date());
+const mondayStr=()=>ymd(monday(new Date()));
 
 function def(){return{
   done:false,provaDate:'',
@@ -999,7 +1002,7 @@ const Cloud=(()=>{
 
 // ═══ LOG HELPERS ═══
 const sumLog=(log,from)=>Object.entries(log).filter(([d])=>!from||d>=from).reduce((s,[,n])=>s+(+n||0),0);
-function monthStart(){const d=new Date();return new Date(d.getFullYear(),d.getMonth(),1).toISOString().slice(0,10);}
+function monthStart(){const d=new Date();return ymd(new Date(d.getFullYear(),d.getMonth(),1));}
 const weeksInMonth=()=>{const d=new Date(),days=new Date(d.getFullYear(),d.getMonth()+1,0).getDate();return days/7;};
 
 const cumAulas=()=>sumLog(D.aulaLog);
@@ -1404,7 +1407,7 @@ async function renderLessonHist(){
 }
 
 // ═══ ANALYTICS / INTELIGÊNCIA COMPORTAMENTAL ═══
-function iso(d){return new Date(d).toISOString().slice(0,10);}
+function iso(d){return ymd(d);}
 function activeDateSet(){const s=new Set();for(const[d,n]of Object.entries(D.aulaLog||{}))if(+n>0)s.add(d);for(const[d,n]of Object.entries(D.questLog||{}))if(+n>0)s.add(d);return s;}
 function lastActiveDate(){const a=[...activeDateSet()].sort();return a.length?a[a.length-1]:null;}
 function daysSince(dstr){if(!dstr)return null;return Math.floor((new Date(today())-new Date(dstr))/86400000);}
@@ -1608,7 +1611,7 @@ async function importData(ev){
 const REVIEW_QS=8;
 const RECENCY={semana:{label:'Esta semana',days:3,fresh:true},mes:{label:'Mês passado',days:30},tri:{label:'2–3 meses',days:75},antigo:{label:'Mais antigo',days:150}};
 const reviewBudget=()=>Math.max(1,D.reviewBudget||20);
-function addDays(dstr,n){const d=new Date(dstr);d.setDate(d.getDate()+n);return d.toISOString().slice(0,10);}
+function addDays(dstr,n){const d=parseYMD(dstr);d.setDate(d.getDate()+n);return ymd(d);}
 
 // ═══ PACING: realizado × planejado (por horizonte) ═══
 function pacing(target,done,dElapsed,dTotal){
@@ -1645,7 +1648,7 @@ function projectAtDate(dateStr){
   const plannedPct=Math.min(100,Math.round(elapsedDays/totalDays*100));
   return {projPct,plannedPct,behind:projPct<plannedPct-3};
 }
-function endOfNextMonth(){const d=new Date();return new Date(d.getFullYear(),d.getMonth()+2,0).toISOString().slice(0,10);}
+function endOfNextMonth(){const d=new Date();return ymd(new Date(d.getFullYear(),d.getMonth()+2,0));}
 
 let REVIEWS=[];
 async function loadReviews(){try{REVIEWS=await Store.getReviews();}catch(e){REVIEWS=[];}}
