@@ -1047,14 +1047,22 @@ function proj(){
   return{total,cum,rem,wl,p,req,projTotal,weeksNeeded,finishDate,onTime,pct:pctDone()};
 }
 function risk(){
-  const w=weeksLeft();if(!w)return'med';
-  const pr=proj();
-  if(pr.req===null)return'med';
-  const ep=(typeof examPacing==='function')?examPacing():null;
-  const gap=ep?(ep.plannedPct-ep.donePct):0; // atraso vs curva planejada
-  if(pr.req>aulaGoal()*1.5||gap>=25)return'hi';
-  if(pr.req>aulaGoal()*1.15||gap>=12)return'med';
-  return'low';
+  const w=weeksLeft();
+  let level='low';
+  if(!w){level='med';}
+  else{
+    const pr=proj();
+    if(pr.req===null){level='med';}
+    else{
+      const ep=(typeof examPacing==='function')?examPacing():null;
+      const gap=ep?(ep.plannedPct-ep.donePct):0; // atraso vs curva planejada do curso
+      if(pr.req>aulaGoal()*1.5||gap>=25)level='hi';
+      else if(pr.req>aulaGoal()*1.15||gap>=12)level='med';
+    }
+  }
+  // coerência com "Esta semana": atrás em aulas OU questões ⇒ no mínimo Atenção
+  try{const wp=weekPacing();if((wp.a.status==='behind'||wp.q.status==='behind')&&level==='low')level='med';}catch(e){}
+  return level;
 }
 const fmtDate=d=>d?`${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`:'—';
 
@@ -1142,11 +1150,6 @@ function renderToday(){
   renderReviews();
   renderReviewsSummary();
   renderHorizons();
-}
-
-function setRing(id,circ,pct,color){
-  const el=document.getElementById(id);if(!el)return;
-  el.style.strokeDashoffset=circ*(1-pct/100);el.style.stroke=pct>=100?'#10b981':color;
 }
 
 // ═══ ADD / ADJUST ═══
