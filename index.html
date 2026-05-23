@@ -105,6 +105,7 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sa
 /* PROGRESS BAR */
 .pwrap{background:#e2e8f0;border-radius:5px;height:8px;overflow:hidden;margin:7px 0}
 .pfill{height:100%;border-radius:5px;transition:width .6s}
+.pmark{position:absolute;top:-2px;bottom:-2px;width:2px;background:var(--t);opacity:.5;border-radius:1px}
 
 /* INPUTS */
 .inp{width:100%;padding:10px 13px;border:1.5px solid var(--bd);border-radius:11px;font-size:14px;outline:none;color:var(--t);background:#fff;font-family:inherit}
@@ -345,19 +346,23 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sa
         <div id="missionInsight" style="font-size:11.5px;opacity:.92;margin-top:10px;line-height:1.45"></div>
       </div>
 
-      <!-- REVISÕES DE HOJE -->
+      <!-- REVISÕES (resumo + lista colapsável) -->
       <div class="card">
-        <div class="ctitle" style="color:var(--p)">🔁 Revisões de hoje</div>
-        <div id="reviewsBody"></div>
+        <div class="ctitle" style="color:var(--p);display:flex;justify-content:space-between;align-items:center">
+          <span>🔁 Revisões de hoje</span>
+          <button class="btn btn-o btn-sm" id="revToggle" onclick="toggleReviews()">Revisar</button>
+        </div>
+        <div id="reviewsSummary"></div>
+        <div id="reviewsBody" style="display:none;margin-top:10px"></div>
       </div>
 
-      <!-- PROJEÇÃO -->
-      <div class="card" id="projHojeCard">
-        <div class="ctitle">🔮 Projeção até a prova</div>
-        <div id="projHoje"></div>
+      <!-- ESTA SEMANA -->
+      <div class="card">
+        <div class="ctitle">📆 Esta semana <span style="color:var(--t3);font-weight:600">· realizado × planejado</span></div>
+        <div id="hWeek"></div>
       </div>
 
-      <!-- RITMO DESTA SEMANA -->
+      <!-- RITMO -->
       <div class="rhythm-card">
         <div class="rc-title">⚡ Ritmo desta semana</div>
         <div class="rc-row">
@@ -379,51 +384,14 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sa
         <div class="rc-hint" id="rcHint">Redefine toda segunda-feira automaticamente</div>
       </div>
 
-      <!-- ANÉIS SEMANA -->
-      <div class="sg">
-        <div class="card" style="margin-bottom:0">
-          <div class="ctitle" style="color:var(--p)">📚 Aulas (semana)</div>
-          <div class="wring">
-            <svg class="ring-svg" width="58" height="58" viewBox="0 0 58 58">
-              <circle class="ring-bg" cx="29" cy="29" r="22" stroke-width="7"/>
-              <circle class="ring-fill" id="wRingA" cx="29" cy="29" r="22" stroke-width="7"
-                stroke="#6366f1" stroke-dasharray="138.2" stroke-dashoffset="138.2"/>
-            </svg>
-            <div>
-              <div style="font-size:20px;font-weight:900"><span id="wDA">0</span>/<span id="wGA">—</span></div>
-              <div style="font-size:11px;color:var(--t2)">esta semana</div>
-              <div style="font-size:11px;color:var(--t2)">faltam: <strong id="wFA">—</strong></div>
-            </div>
-          </div>
-        </div>
-        <div class="card" style="margin-bottom:0">
-          <div class="ctitle" style="color:var(--q)">❓ Questões (semana)</div>
-          <div class="wring">
-            <svg class="ring-svg" width="58" height="58" viewBox="0 0 58 58">
-              <circle class="ring-bg" cx="29" cy="29" r="22" stroke-width="7"/>
-              <circle class="ring-fill" id="wRingQ" cx="29" cy="29" r="22" stroke-width="7"
-                stroke="#8b5cf6" stroke-dasharray="138.2" stroke-dashoffset="138.2"/>
-            </svg>
-            <div>
-              <div style="font-size:20px;font-weight:900"><span id="wDQ">0</span>/<span id="wGQ">—</span></div>
-              <div style="font-size:11px;color:var(--t2)">esta semana</div>
-              <div style="font-size:11px;color:var(--t2)">faltam: <strong id="wFQ">—</strong></div>
-            </div>
-          </div>
-        </div>
-      </div>
+      <!-- ESTE MÊS -->
+      <div class="card"><div class="ctitle">🗓️ Este mês</div><div id="hMonth"></div></div>
 
-      <!-- STATS -->
-      <div class="sg3">
-        <div class="sc"><div class="sl">Aulas feitas</div><div class="sv" style="color:var(--s)" id="sDn">0</div><div class="ss" id="sDnS">de 0</div></div>
-        <div class="sc"><div class="sl">Curso</div><div class="sv" style="color:var(--p)" id="sPg">0%</div><div class="ss">concluído</div></div>
-        <div class="sc"><div class="sl">Semanas</div><div class="sv" style="color:var(--w)" id="sSm">—</div><div class="ss">p/ prova</div></div>
-      </div>
+      <!-- MÊS QUE VEM -->
+      <div class="card"><div class="ctitle">🔮 Mês que vem (projeção)</div><div id="hNext"></div></div>
 
-      <div class="card">
-        <div class="ctitle">🧠 O que fazer agora</div>
-        <div id="decToday"></div>
-      </div>
+      <!-- ATÉ A PROVA -->
+      <div class="card"><div class="ctitle">🎯 Até a prova</div><div id="hExam"></div></div>
     </div>
 
     <!-- ══ TAB: AULAS ══ -->
@@ -717,7 +685,7 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sa
   </div>
 
   <nav class="bnav">
-    <button class="nb on" id="nbHoje" onclick="goTab('Hoje')"><span class="ni">🏠</span>Hoje</button>
+    <button class="nb on" id="nbHoje" onclick="goTab('Hoje')"><span class="ni">🏠</span>Início</button>
     <button class="nb" id="nbAulas" onclick="goTab('Aulas')"><span class="ni">📚</span>Aulas</button>
     <button class="nb" id="nbQuestoes" onclick="goTab('Questoes')"><span class="ni">❓</span>Questões</button>
     <button class="nb" id="nbStats" onclick="goTab('Stats')"><span class="ni">📊</span>Stats</button>
@@ -1154,32 +1122,21 @@ function renderHeader(){
 // ═══ TODAY ═══
 function renderToday(){
   const wd=weekAulas(),wg=aulaGoal(),wq=weekQ(),qg=qGoal();
-  const flA=Math.max(0,wg-wd),flQ=Math.max(0,qg-wq);
-  const du=daysLeftWeek();
+  const flA=Math.max(0,wg-wd),flQ=Math.max(0,qg-wq),du=daysLeftWeek();
+  const aT=Math.ceil(flA/du),qT=Math.ceil(flQ/du),rT=Math.min(dueReviews().length,reviewBudget());
   const ms=document.getElementById('msTitle');
-  if(flA===0&&flQ===0)ms.textContent='🎉 Metas da semana batidas! Revise ou antecipe.';
-  else ms.textContent=`Hoje: ~${Math.ceil(flA/du)} aula(s) e ~${Math.ceil(flQ/du)} questões para manter o ritmo.`;
-
-  document.getElementById('rcGoal').textContent=wg;
-  document.getElementById('rcQGoal').textContent=qg;
+  if(ms){
+    if(flA===0&&flQ===0&&rT===0)ms.textContent='🎉 Missão de hoje cumprida — pode descansar!';
+    else ms.textContent=`Hoje: ~${aT} aula(s) · ~${qT} questões${rT?` · ${rT} revisões`:''}`;
+  }
+  const rcG=document.getElementById('rcGoal');if(rcG)rcG.textContent=wg;
+  const rcQ=document.getElementById('rcQGoal');if(rcQ)rcQ.textContent=qg;
   const rcH=document.getElementById('rcHint');
-  rcH.textContent=(D.aulaWeekOverride!==null||D.qWeekOverride!==null)
-    ?'⚡ Ajustado para esta semana — reseta na segunda'
-    :'Redefine automaticamente toda segunda-feira';
-
-  setRing('wRingA',138.2,wg?Math.min(100,Math.round(wd/wg*100)):0,'#6366f1');
-  setRing('wRingQ',138.2,qg?Math.min(100,Math.round(wq/qg*100)):0,'#8b5cf6');
-  document.getElementById('wDA').textContent=wd;document.getElementById('wGA').textContent=wg;document.getElementById('wFA').textContent=flA;
-  document.getElementById('wDQ').textContent=wq;document.getElementById('wGQ').textContent=qg;document.getElementById('wFQ').textContent=flQ;
-
-  document.getElementById('sDn').textContent=cumAulas();document.getElementById('sDnS').textContent='de '+D.totalAulas;
-  document.getElementById('sPg').textContent=pctDone()+'%';
-  document.getElementById('sSm').textContent=weeksLeft()!==null?weeksLeft():'—';
-
-  renderProj('projHoje',true);
-  renderDec('decToday',true);
+  if(rcH)rcH.textContent=(D.aulaWeekOverride!==null||D.qWeekOverride!==null)?'⚡ Ajustado para esta semana — reseta na segunda':'Redefine automaticamente toda segunda-feira';
   renderMissionInsight();
   renderReviews();
+  renderReviewsSummary();
+  renderHorizons();
 }
 
 function setRing(id,circ,pct,color){
@@ -1648,6 +1605,44 @@ const REVIEW_QS=8;
 const RECENCY={semana:{label:'Esta semana',days:3,fresh:true},mes:{label:'Mês passado',days:30},tri:{label:'2–3 meses',days:75},antigo:{label:'Mais antigo',days:150}};
 const reviewBudget=()=>Math.max(1,D.reviewBudget||20);
 function addDays(dstr,n){const d=new Date(dstr);d.setDate(d.getDate()+n);return d.toISOString().slice(0,10);}
+
+// ═══ PACING: realizado × planejado (por horizonte) ═══
+function pacing(target,done,dElapsed,dTotal){
+  target=Math.max(0,target);dTotal=Math.max(1,dTotal);dElapsed=Math.min(dTotal,Math.max(0,dElapsed));
+  const expected=target*(dElapsed/dTotal);
+  const pct=target?Math.min(100,Math.round(done/target*100)):0;
+  const expPct=target?Math.min(100,Math.round(expected/target*100)):0;
+  const remaining=Math.max(0,target-done);
+  const daysLeft=Math.max(0,Math.round(dTotal-dElapsed));
+  const perDay=daysLeft>0?Math.ceil(remaining/daysLeft):remaining;
+  let status='behind';
+  if(done>=target)status='done';
+  else if(done>expected*1.1)status='ahead';
+  else if(done>=expected*0.9)status='ontrack';
+  return {target,done,expected:Math.round(expected),pct,expPct,remaining,daysLeft,perDay,status};
+}
+function weekPacing(){const dTotal=7,dElapsed=7-daysLeftWeek();return{a:pacing(aulaGoal(),weekAulas(),dElapsed,dTotal),q:pacing(qGoal(),weekQ(),dElapsed,dTotal)};}
+function monthPacing(){const d=new Date(),dTotal=new Date(d.getFullYear(),d.getMonth()+1,0).getDate(),dElapsed=d.getDate();return{a:pacing(aulaMonthMeta(),monthAulas(),dElapsed,dTotal),q:pacing(qMonthMeta(),monthQ(),dElapsed,dTotal)};}
+function examPacing(){
+  const x=proj();if(x.wl===null)return null;
+  const totalWeeks=Math.max(1,Math.ceil((new Date(D.provaDate)-new Date(D.firstWeek))/(7*86400000)));
+  const elapsedWeeks=Math.max(0,totalWeeks-x.wl);
+  const plannedPct=Math.min(100,Math.round(elapsedWeeks/totalWeeks*100));
+  const donePct=pctDone();
+  return Object.assign({},x,{plannedPct,donePct,totalWeeks,elapsedWeeks,behind:donePct<plannedPct-5,ahead:donePct>plannedPct+5});
+}
+function projectAtDate(dateStr){
+  if(!D.provaDate||!D.firstWeek)return null;
+  const wl=Math.max(0,Math.ceil((new Date(dateStr)-new Date())/(7*86400000)));
+  const projected=Math.min(D.totalAulas,cumAulas()+pace()*wl);
+  const projPct=D.totalAulas?Math.round(projected/D.totalAulas*100):0;
+  const totalDays=Math.max(1,(new Date(D.provaDate)-new Date(D.firstWeek))/86400000);
+  const elapsedDays=Math.max(0,(new Date(dateStr)-new Date(D.firstWeek))/86400000);
+  const plannedPct=Math.min(100,Math.round(elapsedDays/totalDays*100));
+  return {projPct,plannedPct,behind:projPct<plannedPct-3};
+}
+function endOfNextMonth(){const d=new Date();return new Date(d.getFullYear(),d.getMonth()+2,0).toISOString().slice(0,10);}
+
 let REVIEWS=[];
 async function loadReviews(){try{REVIEWS=await Store.getReviews();}catch(e){REVIEWS=[];}}
 function reviewUrgency(r){const od=Math.max(0,Math.round((new Date(today())-new Date(r.dueDate))/86400000));const sw=r.stage==='react'?4:(5-(+r.stage||1));return od*10+sw;}
@@ -1663,7 +1658,7 @@ async function completeReview(id,ok){
     else{const gap=s===1?7:s===2?15:30;patch={stage:s+1,dueDate:addDays(today(),gap),lastScore:'ok'};}}
   try{await Store.updateReview(id,patch);}catch(e){}
   if(typeof Cloud!=='undefined'&&Cloud.user)Cloud.schedulePush();
-  await loadReviews();renderReviews();renderMissionInsight();
+  await loadReviews();renderReviews();renderReviewsSummary();renderMissionInsight();
 }
 function reviewOk(id){completeReview(id,true);}
 function reviewDifficult(id){completeReview(id,false);}
@@ -1740,8 +1735,56 @@ async function saveRetro(){
   await seedRetro(rows);closeRetro();goTab('Hoje');
 }
 
+// ═══ INÍCIO: render dos horizontes (realizado × planejado) ═══
+function statusPill(s){
+  const m={done:['✅ concluído','#d1fae5','#065f46'],ontrack:['✅ no ritmo','#d1fae5','#065f46'],ahead:['🚀 adiantada','#dbeafe','#1e40af'],behind:['⚠️ atrás','#fef3c7','#92400e']};
+  const v=m[s]||m.behind;return `<span style="font-size:10px;font-weight:800;padding:2px 9px;border-radius:10px;background:${v[1]};color:${v[2]};white-space:nowrap">${v[0]}</span>`;
+}
+function paceBar(label,color,p,unit){
+  const phrase=p.status==='done'?'Meta batida! 🎉':p.status==='ahead'?'Acima do ritmo esperado — adiantada.':p.remaining>0?`Faltam ${p.remaining} ${unit} · ~${p.perDay}/dia nos próximos ${p.daysLeft} dia(s)`:'No ritmo.';
+  return `<div style="margin-bottom:11px">
+    <div style="display:flex;justify-content:space-between;align-items:center;font-size:12px;margin-bottom:5px">
+      <span style="font-weight:700">${label}: ${p.done}/${p.target}</span>${statusPill(p.status)}</div>
+    <div class="pwrap" style="position:relative;height:10px"><div class="pfill" style="background:${color};width:${p.pct}%"></div><div class="pmark" style="left:${p.expPct}%" title="ritmo esperado até hoje"></div></div>
+    <div style="font-size:11px;color:var(--t2);margin-top:4px">${phrase}</div></div>`;
+}
+function naMsg(){return '<div style="font-size:12px;color:var(--t2);line-height:1.5">Configure a data da prova no ⚙ Plano para ver as projeções.</div>';}
+function nextMonthHtml(nm){
+  const st=nm.behind?'behind':'ontrack',req=proj().req||aulaGoal();
+  return `<div style="display:flex;justify-content:space-between;align-items:center;font-size:12px;margin-bottom:5px"><span style="font-weight:700">Projeção: ${nm.projPct}% do curso</span>${statusPill(st)}</div>
+  <div class="pwrap" style="position:relative;height:10px"><div class="pfill" style="background:#8b5cf6;width:${nm.projPct}%"></div><div class="pmark" style="left:${nm.plannedPct}%"></div></div>
+  <div style="font-size:11px;color:var(--t2);margin-top:6px;line-height:1.5">No ritmo atual, no fim do mês que vem você estará em ~<strong>${nm.projPct}%</strong> (plano: ~${nm.plannedPct}%).${nm.behind?` Para alcançar, mire em <strong>${req} aulas/sem</strong>.`:' Trajetória saudável. 👏'}</div>`;
+}
+function examHtml(ep){
+  const st=ep.donePct>=ep.plannedPct?'ontrack':'behind';
+  return `<div style="display:flex;justify-content:space-between;align-items:center;font-size:12px;margin-bottom:5px"><span style="font-weight:700">Curso: ${ep.cum}/${ep.total} (${ep.donePct}%)</span>${statusPill(st)}</div>
+  <div class="pwrap" style="position:relative;height:10px"><div class="pfill" style="background:#10b981;width:${ep.donePct}%"></div><div class="pmark" style="left:${ep.plannedPct}%"></div></div>
+  <div style="font-size:11px;color:var(--t2);margin-top:6px;line-height:1.5">Planejado p/ hoje: <strong>${ep.plannedPct}%</strong> · <strong>${ep.wl}</strong> semanas p/ prova.<br>${ep.onTime?`✅ No ritmo — conclusão prevista <strong>${fmtDate(ep.finishDate)}</strong>.`:`⚠️ Precisa de <strong>${ep.req} aulas/sem</strong> p/ terminar a tempo (ritmo atual ~${Math.round(ep.p)}/sem).`}</div>`;
+}
+function renderHorizons(){
+  const hw=document.getElementById('hWeek');
+  if(hw){const wp=weekPacing();hw.innerHTML=paceBar('Aulas','#6366f1',wp.a,'aulas')+paceBar('Questões','#8b5cf6',wp.q,'questões')+'<div style="font-size:11px;color:var(--t2)">A marca │ mostra onde você deveria estar até hoje.</div>';}
+  const hm=document.getElementById('hMonth');
+  if(hm){const mp=monthPacing();hm.innerHTML=paceBar('Aulas','#6366f1',mp.a,'aulas')+paceBar('Questões','#8b5cf6',mp.q,'questões');}
+  const hn=document.getElementById('hNext');
+  if(hn){const nm=projectAtDate(endOfNextMonth());hn.innerHTML=nm?nextMonthHtml(nm):naMsg();}
+  const he=document.getElementById('hExam');
+  if(he){const ep=examPacing();he.innerHTML=ep?examHtml(ep):naMsg();}
+}
+function renderReviewsSummary(){
+  const el=document.getElementById('reviewsSummary');if(!el)return;
+  const tog=document.getElementById('revToggle');
+  if(typeof Store==='undefined'||!Store.ready){el.innerHTML='<div style="font-size:12px;color:var(--t2)">Carregando…</div>';if(tog)tog.style.display='none';return;}
+  const due=dueReviews().length,shown=Math.min(due,reviewBudget());
+  if(!REVIEWS.length){el.innerHTML='<div style="font-size:12px;color:var(--t2);line-height:1.5">Sem revisões ainda. Reconstrua seu histórico em ⚙ Plano → “Reconstruir histórico”.</div>';if(tog)tog.style.display='none';return;}
+  if(!due){el.innerHTML='<div style="font-size:13px;color:var(--s);font-weight:700">✅ Revisões em dia hoje!</div>';if(tog)tog.style.display='none';return;}
+  if(tog)tog.style.display='';
+  el.innerHTML=`<div style="font-size:13px;line-height:1.5"><strong>${shown}</strong> revisão(ões) hoje · ~${shown*REVIEW_QS} questões${due>shown?` <span style="color:var(--t2)">· +${due-shown} adiadas</span>`:''}</div>`;
+}
+function toggleReviews(){const b=document.getElementById('reviewsBody'),t=document.getElementById('revToggle');if(!b)return;const show=b.style.display==='none';b.style.display=show?'block':'none';if(t)t.textContent=show?'Ocultar':'Revisar';if(show)renderReviews();}
+
 // chamado quando o Store/IndexedDB termina de inicializar
-function onStoreReady(){renderLessonHist();fillDiscList();renderCourseMap();renderStreaks();renderMissionInsight();loadReviews().then(renderReviews);}
+function onStoreReady(){renderLessonHist();fillDiscList();renderCourseMap();renderStreaks();renderMissionInsight();loadReviews().then(()=>{renderReviews();renderReviewsSummary();});}
 
 // ═══ TABS ═══
 const TABS={Hoje:{p:'pHoje',n:'nbHoje'},Aulas:{p:'pAulas',n:'nbAulas'},Questoes:{p:'pQuestoes',n:'nbQuestoes'},Stats:{p:'pStats',n:'nbStats'},Plano:{p:'pPlano',n:'nbPlano'}};
