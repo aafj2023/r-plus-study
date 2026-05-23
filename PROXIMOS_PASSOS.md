@@ -10,6 +10,16 @@ HTML/CSS/JS puro + Chart.js + Dexie + Firebase. PWA instalável e offline.
 - **Firebase (login + sync):** projeto `doctor-calendar-c4c6f` em https://console.firebase.google.com
 - **Usuário GitHub:** `aafj2023`
 
+## 🔴 PRÓXIMO PASSO IMEDIATO (1 ação sua, no Firebase)
+Para o **beta fechado** funcionar (convidar testadores + segurança), publique as regras:
+1. https://console.firebase.google.com → projeto `doctor-calendar-c4c6f`
+2. **Firestore Database → aba Regras (Rules)**
+3. Apague tudo, cole o conteúdo do arquivo **`firestore.rules`** (nesta pasta) → **Publicar**
+
+> Vocês (master) já entram no app sem isso. As regras liberam os **convites** e trancam a segurança.
+
+Depois: convidar testadores em **⚙ Plano → 🔐 Beta fechado → digitar email → Convidar**.
+
 ## ▶️ Como retomar depois
 1. Abrir uma nova conversa do Claude Code **nesta mesma pasta** (Área de Trabalho).
 2. Dizer: "vamos continuar o R+ Study" + o que quer fazer.
