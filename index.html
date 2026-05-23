@@ -152,6 +152,8 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sa
 .fld label{display:block;font-size:10px;font-weight:800;color:var(--t2);text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px}
 .frow2{display:flex;gap:8px}
 .frow2>.fld{flex:1}
+.retro-row{display:flex;gap:6px;align-items:center;margin-bottom:7px}
+.retro-row .inp{flex:1;min-width:0}
 
 /* HISTORY LIST */
 .hl{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--bd);cursor:pointer}
@@ -341,6 +343,12 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sa
           <button class="ms-qa" onclick="addQ(10)">❓ +10 questões</button>
         </div>
         <div id="missionInsight" style="font-size:11.5px;opacity:.92;margin-top:10px;line-height:1.45"></div>
+      </div>
+
+      <!-- REVISÕES DE HOJE -->
+      <div class="card">
+        <div class="ctitle" style="color:var(--p)">🔁 Revisões de hoje</div>
+        <div id="reviewsBody"></div>
       </div>
 
       <!-- PROJEÇÃO -->
@@ -656,7 +664,20 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sa
             <div style="font-size:24px;font-weight:900;color:var(--t2);min-width:44px;text-align:center" id="pMinN">40</div>
           </div>
         </div>
+        <div class="pf">
+          <div class="pl">🔁 Limite de revisões por dia (carga cognitiva)</div>
+          <div style="display:flex;align-items:center;gap:11px">
+            <input type="range" id="pRevSlider" min="5" max="60" step="5" style="flex:1;accent-color:var(--p)"
+              oninput="document.getElementById('pRevN').textContent=this.value;savePlan()"/>
+            <div style="font-size:24px;font-weight:900;color:var(--p);min-width:40px;text-align:center" id="pRevN">20</div>
+          </div>
+        </div>
         <div class="hint" id="pSum">—</div>
+      </div>
+      <div class="card">
+        <div class="ctitle">🔁 Reconstruir histórico de estudos</div>
+        <div style="font-size:12px;color:var(--t2);margin-bottom:11px;line-height:1.5">Já estudou antes do app? Informe por disciplina o que já fez — o app cria revisões espaçadas (baseadas em questões), distribuídas sem sobrecarregar o dia.</div>
+        <button class="btn btn-p btn-sm" onclick="openRetro()">Reconstruir histórico</button>
       </div>
       <div class="card">
         <div class="ctitle">🧠 Motor de decisão completo</div>
@@ -742,6 +763,22 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sa
   </div>
 </div>
 
+<!-- MODAL: reconstruir histórico (retroativo) -->
+<div class="modal" id="rmod">
+  <div class="msheet">
+    <div class="mhandle"></div>
+    <div class="mtitle">🔁 Reconstruir histórico</div>
+    <div class="msub">Para cada disciplina: quantas aulas já fez e há quanto tempo. O app cria revisões espaçadas e as distribui sem estourar o limite diário.</div>
+    <div id="retroRows"></div>
+    <button class="btn btn-o btn-sm" style="margin-top:4px" onclick="addRetroRow()">+ Adicionar disciplina</button>
+    <div id="retroPreview" style="font-size:12px;color:var(--t2);margin-top:11px;line-height:1.5"></div>
+    <div class="macts">
+      <button class="btn btn-o" style="flex:1" onclick="closeRetro()">Cancelar</button>
+      <button class="btn btn-p" style="flex:2" onclick="saveRetro()">Gerar revisões</button>
+    </div>
+  </div>
+</div>
+
 <script>
 // ═══ DATA ═══
 const SK='rplus7';
@@ -751,7 +788,7 @@ const mondayStr=()=>monday(new Date()).toISOString().slice(0,10);
 
 function def(){return{
   done:false,provaDate:'',
-  aulaGoal:6,qGoal:100,totalAulas:264,lessonMin:40,
+  aulaGoal:6,qGoal:100,totalAulas:264,lessonMin:40,reviewBudget:20,
   aulaWeekOverride:null,qWeekOverride:null,
   aulaLog:{},questLog:{},
   weekHistory:[],qWeekHistory:[],
@@ -762,7 +799,7 @@ const save=()=>{localStorage.setItem(SK,JSON.stringify(D));try{if(typeof Store!=
 
 // ═══ STORE: persistência estruturada (IndexedDB via Dexie; fallback localStorage) ═══
 const Store=(()=>{
-  const LSK={lessons:'rplus7_lessons',questions:'rplus7_questions',meta:'rplus7_store_meta'};
+  const LSK={lessons:'rplus7_lessons',questions:'rplus7_questions',reviews:'rplus7_reviews',meta:'rplus7_store_meta'};
   let db=null,mode='ls',ready=false;
   const now=()=>Date.now();
   const lsGet=k=>{try{return JSON.parse(localStorage.getItem(k)||'[]');}catch(e){return[];}};
@@ -781,6 +818,14 @@ const Store=(()=>{
         weeklySnapshots:'++id, &weekKey',
         settings:'&key',
         streaks:'&key'
+      });
+      db.version(2).stores({
+        lessonsHistory:'++id, date, disciplina, numero, createdAt',
+        questionsHistory:'++id, date, createdAt',
+        weeklySnapshots:'++id, &weekKey',
+        settings:'&key',
+        streaks:'&key',
+        reviews:'++id, dueDate, status, disciplina, stage, createdAt'
       });
       await db.open();
       mode='idb';
@@ -820,6 +865,32 @@ const Store=(()=>{
   }
   async function getQuestions(){return mode==='idb'?await db.questionsHistory.toArray():lsGet(LSK.questions);}
 
+  // ── Revisões (SRS) ──
+  async function addReview(o){
+    const rec=Object.assign({disciplina:'Geral',label:'',stage:'react',dueDate:today(),status:'pending',origin:'retro',lessonId:null,lastScore:null,createdAt:now(),updatedAt:now()},o);
+    if(mode==='idb'){rec.id=await db.reviews.add(rec);}
+    else{const a=lsGet(LSK.reviews);rec.id=nextId('rid');a.push(rec);lsSet(LSK.reviews,a);}
+    return rec;
+  }
+  async function bulkAddReviews(arr){
+    if(!arr||!arr.length)return;
+    if(mode==='idb'){const recs=arr.map(o=>Object.assign({disciplina:'Geral',label:'',stage:'react',dueDate:today(),status:'pending',origin:'retro',lessonId:null,lastScore:null,createdAt:now(),updatedAt:now()},o));await db.reviews.bulkAdd(recs);}
+    else{for(const o of arr)await addReview(o);}
+  }
+  async function getReviews(){return mode==='idb'?await db.reviews.toArray():lsGet(LSK.reviews);}
+  async function updateReview(id,patch){
+    patch=Object.assign({},patch,{updatedAt:now()});
+    if(mode==='idb'){await db.reviews.update(id,patch);}
+    else{const a=lsGet(LSK.reviews),i=a.findIndex(x=>x.id===id);if(i>=0){a[i]=Object.assign(a[i],patch);lsSet(LSK.reviews,a);}}
+  }
+  async function deleteReview(id){
+    if(mode==='idb'){await db.reviews.delete(id);}
+    else{lsSet(LSK.reviews,lsGet(LSK.reviews).filter(x=>x.id!==id));}
+  }
+  async function clearReviews(){
+    if(mode==='idb'){await db.reviews.clear();}else{lsSet(LSK.reviews,[]);}
+  }
+
   // ── Settings / Streaks ──
   async function setSetting(key,value){
     if(mode==='idb'){try{await db.settings.put({key,value,updatedAt:now()});}catch(e){}}
@@ -857,9 +928,11 @@ const Store=(()=>{
       out.weeklySnapshots=await db.weeklySnapshots.toArray();
       out.settings=await db.settings.toArray();
       out.streaks=await db.streaks.toArray();
+      out.reviews=await db.reviews.toArray();
     }else{
       out.lessonsHistory=lsGet(LSK.lessons);
       out.questionsHistory=lsGet(LSK.questions);
+      out.reviews=lsGet(LSK.reviews);
       const m=meta();out.weeklySnapshots=m.snaps?Object.values(m.snaps):[];
       out.settings=[];out.streaks=[];
     }
@@ -867,22 +940,24 @@ const Store=(()=>{
   }
   async function importAll(data){
     if(mode==='idb'){
-      await db.transaction('rw',db.lessonsHistory,db.questionsHistory,db.weeklySnapshots,db.settings,db.streaks,async()=>{
-        await Promise.all([db.lessonsHistory.clear(),db.questionsHistory.clear(),db.weeklySnapshots.clear(),db.settings.clear(),db.streaks.clear()]);
+      await db.transaction('rw',db.lessonsHistory,db.questionsHistory,db.weeklySnapshots,db.settings,db.streaks,db.reviews,async()=>{
+        await Promise.all([db.lessonsHistory.clear(),db.questionsHistory.clear(),db.weeklySnapshots.clear(),db.settings.clear(),db.streaks.clear(),db.reviews.clear()]);
         if(data.lessonsHistory&&data.lessonsHistory.length)await db.lessonsHistory.bulkPut(data.lessonsHistory);
         if(data.questionsHistory&&data.questionsHistory.length)await db.questionsHistory.bulkPut(data.questionsHistory);
         if(data.weeklySnapshots&&data.weeklySnapshots.length)await db.weeklySnapshots.bulkPut(data.weeklySnapshots);
         if(data.settings&&data.settings.length)await db.settings.bulkPut(data.settings);
         if(data.streaks&&data.streaks.length)await db.streaks.bulkPut(data.streaks);
+        if(data.reviews&&data.reviews.length)await db.reviews.bulkPut(data.reviews);
       });
     }else{
       lsSet(LSK.lessons,data.lessonsHistory||[]);
       lsSet(LSK.questions,data.questionsHistory||[]);
+      lsSet(LSK.reviews,data.reviews||[]);
     }
     if(data.meta)setMeta(data.meta);
   }
 
-  return {init,addLesson,updateLesson,deleteLesson,getLessons,addQuestionRec,getQuestions,setSetting,getSetting,putSnapshot,exportAll,importAll,
+  return {init,addLesson,updateLesson,deleteLesson,getLessons,addQuestionRec,getQuestions,addReview,bulkAddReviews,getReviews,updateReview,deleteReview,clearReviews,setSetting,getSetting,putSnapshot,exportAll,importAll,
     get mode(){return mode;},get ready(){return ready;}};
 })();
 
@@ -1104,6 +1179,7 @@ function renderToday(){
   renderProj('projHoje',true);
   renderDec('decToday',true);
   renderMissionInsight();
+  renderReviews();
 }
 
 function setRing(id,circ,pct,color){
@@ -1269,6 +1345,7 @@ function renderPlan(){
   set('pSlider',D.aulaGoal);document.getElementById('pSliderN').textContent=D.aulaGoal;
   set('pQSlider',D.qGoal);document.getElementById('pQSliderN').textContent=D.qGoal;
   set('pMinSlider',D.lessonMin);document.getElementById('pMinN').textContent=D.lessonMin;
+  set('pRevSlider',D.reviewBudget||20);document.getElementById('pRevN').textContent=D.reviewBudget||20;
   updPSum();renderDec('decFull',false);renderCloud();
 }
 function savePlan(){
@@ -1277,7 +1354,8 @@ function savePlan(){
   const g=+document.getElementById('pSlider')?.value;
   const qg=+document.getElementById('pQSlider')?.value;
   const m=+document.getElementById('pMinSlider')?.value;
-  if(d)D.provaDate=d;if(tot)D.totalAulas=tot;if(g)D.aulaGoal=g;if(qg)D.qGoal=qg;if(m)D.lessonMin=m;
+  const rb=+document.getElementById('pRevSlider')?.value;
+  if(d)D.provaDate=d;if(tot)D.totalAulas=tot;if(g)D.aulaGoal=g;if(qg)D.qGoal=qg;if(m)D.lessonMin=m;if(rb)D.reviewBudget=rb;
   save();updPSum();renderAll();
 }
 function updPSum(){
@@ -1325,8 +1403,12 @@ async function saveLessonModal(){
         D.aulaLog[date]=(D.aulaLog[date]||0)+1;save();
       }
     }else{
-      await Store.addLesson({date,disciplina,nome,numero,duracao,obs});
+      const rec=await Store.addLesson({date,disciplina,nome,numero,duracao,obs});
       D.aulaLog[date]=(D.aulaLog[date]||0)+1;save();
+      // cria a revisão espaçada (D+1 se recente; reativação se a aula for antiga)
+      const ageDays=Math.round((new Date(today())-new Date(date))/86400000);
+      const rev=ageDays>2?{stage:'react',dueDate:today()}:{stage:1,dueDate:addDays(date,1)};
+      try{await Store.addReview(Object.assign({disciplina,label:(nome||('Aula'+(numero!=null?' '+numero:''))),origin:'lesson',lessonId:rec&&rec.id},rev));await loadReviews();}catch(e){}
     }
   }catch(e){}
   closeLessonModal();renderAll();renderLessonHist();
@@ -1561,8 +1643,105 @@ async function importData(ev){
   }catch(e){alert('Não foi possível ler o arquivo. Verifique se é um backup .json válido do R+ Study.');ev.target.value='';}
 }
 
+// ═══ REVISÃO ESPAÇADA (SRS) ═══
+const REVIEW_QS=8;
+const RECENCY={semana:{label:'Esta semana',days:3,fresh:true},mes:{label:'Mês passado',days:30},tri:{label:'2–3 meses',days:75},antigo:{label:'Mais antigo',days:150}};
+const reviewBudget=()=>Math.max(1,D.reviewBudget||20);
+function addDays(dstr,n){const d=new Date(dstr);d.setDate(d.getDate()+n);return d.toISOString().slice(0,10);}
+let REVIEWS=[];
+async function loadReviews(){try{REVIEWS=await Store.getReviews();}catch(e){REVIEWS=[];}}
+function reviewUrgency(r){const od=Math.max(0,Math.round((new Date(today())-new Date(r.dueDate))/86400000));const sw=r.stage==='react'?4:(5-(+r.stage||1));return od*10+sw;}
+function dueReviews(){const t=today();return REVIEWS.filter(r=>r.status==='pending'&&r.dueDate&&r.dueDate<=t).sort((a,b)=>reviewUrgency(b)-reviewUrgency(a));}
+const stageLabel=s=>s==='react'?'reativação':('D+'+({1:1,2:7,3:15,4:30}[s]||'?'));
+
+async function completeReview(id,ok){
+  const r=REVIEWS.find(x=>x.id===id);if(!r)return;
+  let patch;
+  if(!ok){patch={dueDate:addDays(today(),2),lastScore:'dificil'};}
+  else if(r.stage==='react'){patch={stage:2,dueDate:addDays(today(),7),lastScore:'ok'};}
+  else{const s=+r.stage;if(s>=4){patch={status:'done',doneAt:today(),dueDate:null,lastScore:'ok'};}
+    else{const gap=s===1?7:s===2?15:30;patch={stage:s+1,dueDate:addDays(today(),gap),lastScore:'ok'};}}
+  try{await Store.updateReview(id,patch);}catch(e){}
+  if(typeof Cloud!=='undefined'&&Cloud.user)Cloud.schedulePush();
+  await loadReviews();renderReviews();renderMissionInsight();
+}
+function reviewOk(id){completeReview(id,true);}
+function reviewDifficult(id){completeReview(id,false);}
+
+function renderReviews(){
+  const el=document.getElementById('reviewsBody');if(!el)return;
+  if(typeof Store==='undefined'||!Store.ready){el.innerHTML='<div style="font-size:12px;color:var(--t2)">Carregando…</div>';return;}
+  const due=dueReviews(),budget=reviewBudget(),list=due.slice(0,budget),over=due.length-list.length;
+  if(!REVIEWS.length){el.innerHTML='<div style="font-size:12px;color:var(--t2);line-height:1.5">Sem revisões ainda. Registre aulas em 📚 ou reconstrua seu histórico em ⚙ Plano → “Reconstruir histórico”.</div>';return;}
+  if(!list.length){el.innerHTML='<div style="font-size:13px;color:var(--s);font-weight:700">✅ Nenhuma revisão para hoje. Você está em dia!</div>';return;}
+  let h='';
+  if(over>0)h+=`<div class="dm crit" style="margin-bottom:8px"><div class="di"><span class="da">⚠</span><span>${due.length} revisões venceram. Priorizei as <strong>${budget} mais urgentes</strong> hoje — o resto fica para os próximos dias, sem culpa.</span></div></div>`;
+  h+=list.map(r=>{
+    const col=discColor(r.disciplina),od=Math.max(0,Math.round((new Date(today())-new Date(r.dueDate))/86400000));
+    return `<div class="hl">
+      <div class="hl-dot" style="background:${col}"></div>
+      <div class="hl-info"><div class="hl-t">${esc(r.disciplina)} — revisão${od>0?` · ${od}d atrasada`:''}</div><div class="hl-s">${REVIEW_QS} questões · ${stageLabel(r.stage)}</div></div>
+      <div style="display:flex;gap:5px;flex-shrink:0">
+        <button class="btn btn-o btn-sm" style="padding:6px 9px" onclick="reviewDifficult(${r.id})">Difícil</button>
+        <button class="btn btn-s btn-sm" style="padding:6px 11px" onclick="reviewOk(${r.id})">✓ Fiz</button>
+      </div>
+    </div>`;
+  }).join('');
+  if(due.length>1)h+=`<div style="font-size:11px;color:var(--t2);text-align:center;margin-top:9px">${Math.min(list.length,budget)} de ${due.length} revisões pendentes · ~${REVIEW_QS} questões cada</div>`;
+  el.innerHTML=h;
+}
+
+// ── Reconstrução retroativa ──
+let retroRowId=0;
+function openRetro(){const c=document.getElementById('retroRows');if(c){c.innerHTML='';retroRowId=0;addRetroRow();}document.getElementById('rmod').classList.add('on');fillDiscList();}
+function closeRetro(){document.getElementById('rmod').classList.remove('on');}
+function addRetroRow(disc,count,faixa){
+  const c=document.getElementById('retroRows');if(!c)return;
+  const div=document.createElement('div');div.className='retro-row';
+  div.innerHTML=`<input class="inp inp-sm" placeholder="Disciplina" value="${esc(disc||'')}" data-f="disc" list="discList" autocomplete="off">
+    <input class="inp inp-sm" type="number" min="1" placeholder="Nº aulas" value="${count||''}" data-f="count" style="max-width:88px;flex:none">
+    <select class="inp inp-sm" data-f="faixa" style="max-width:120px;flex:none">
+      <option value="semana">Esta semana</option><option value="mes">Mês passado</option><option value="tri">2–3 meses</option><option value="antigo">Mais antigo</option>
+    </select>
+    <button class="hl-del" onclick="this.closest('.retro-row').remove();retroPreview()">✕</button>`;
+  c.appendChild(div);
+  if(faixa)div.querySelector('[data-f=faixa]').value=faixa; else div.querySelector('[data-f=faixa]').value='mes';
+  div.querySelectorAll('input,select').forEach(e=>e.addEventListener('input',retroPreview));
+  retroPreview();
+}
+function readRetroRows(){
+  return [...document.querySelectorAll('#retroRows .retro-row')].map(div=>({
+    disciplina:(div.querySelector('[data-f=disc]').value||'Geral').trim()||'Geral',
+    count:Math.max(0,parseInt(div.querySelector('[data-f=count]').value||'0',10)||0),
+    faixa:div.querySelector('[data-f=faixa]').value
+  })).filter(r=>r.count>0);
+}
+function retroPreview(){
+  const el=document.getElementById('retroPreview');if(!el)return;
+  const rows=readRetroRows(),total=rows.reduce((s,r)=>s+r.count,0),days=Math.ceil(total/reviewBudget());
+  el.textContent=total?`${total} revisões serão criadas e distribuídas em ~${days} dia(s), no máximo ${reviewBudget()}/dia.`:'Adicione disciplinas para ver a estimativa.';
+}
+async function seedRetro(rows){
+  let existing=[];try{existing=await Store.getReviews();}catch(e){}
+  for(const r of existing.filter(x=>x.origin==='retro'&&x.status==='pending'))await Store.deleteReview(r.id);
+  let specs=[];
+  rows.forEach(row=>{const fa=RECENCY[row.faixa]||RECENCY.mes;for(let i=0;i<row.count;i++)specs.push({disciplina:row.disciplina,label:row.disciplina+' — revisão',origin:'retro',stage:fa.fresh?2:'react',_u:fa.days});});
+  specs.sort((a,b)=>b._u-a._u);
+  const budget=reviewBudget();
+  specs.forEach((s,i)=>{s.dueDate=addDays(today(),1+Math.floor(i/budget));delete s._u;});
+  await Store.bulkAddReviews(specs);
+  if(typeof Cloud!=='undefined'&&Cloud.user)Cloud.schedulePush();
+  await loadReviews();renderAll();
+}
+async function saveRetro(){
+  const rows=readRetroRows();if(!rows.length){closeRetro();return;}
+  const total=rows.reduce((s,r)=>s+r.count,0);
+  if(!confirm(`Gerar ${total} revisões a partir dessas disciplinas? (Isto substitui as revisões retroativas pendentes anteriores.)`))return;
+  await seedRetro(rows);closeRetro();goTab('Hoje');
+}
+
 // chamado quando o Store/IndexedDB termina de inicializar
-function onStoreReady(){renderLessonHist();fillDiscList();renderCourseMap();renderStreaks();renderMissionInsight();}
+function onStoreReady(){renderLessonHist();fillDiscList();renderCourseMap();renderStreaks();renderMissionInsight();loadReviews().then(renderReviews);}
 
 // ═══ TABS ═══
 const TABS={Hoje:{p:'pHoje',n:'nbHoje'},Aulas:{p:'pAulas',n:'nbAulas'},Questoes:{p:'pQuestoes',n:'nbQuestoes'},Stats:{p:'pStats',n:'nbStats'},Plano:{p:'pPlano',n:'nbPlano'}};
