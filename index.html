@@ -702,6 +702,15 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sa
         <div class="ctitle">☁️ Nuvem (sincronização)</div>
         <div id="cloudBody"></div>
       </div>
+      <div class="card" id="adminCard" style="display:none;border:1px solid #c7d2fe">
+        <div class="ctitle" style="color:var(--p)">🔐 Beta fechado — convidar testadores</div>
+        <div style="font-size:12px;color:var(--t2);margin-bottom:10px;line-height:1.5">Só pessoas autorizadas entram. Adicione o email (conta Google) de quem você quer liberar.</div>
+        <div style="display:flex;gap:6px;margin-bottom:11px">
+          <input class="inp inp-sm" id="adminEmail" type="email" placeholder="email@gmail.com" style="flex:1;min-width:0" autocomplete="off">
+          <button class="btn btn-p btn-sm" onclick="adminInvite()">Convidar</button>
+        </div>
+        <div id="adminList"></div>
+      </div>
       <div class="card">
         <div class="ctitle">💾 Backup e transferência</div>
         <div style="font-size:12px;color:var(--t2);margin-bottom:11px;line-height:1.5">Exporte um arquivo com <strong>todo</strong> o seu progresso (metas, contagens, aulas registradas e histórico). Guarde-o como segurança ou abra-o em outro aparelho para continuar de onde parou.</div>
@@ -983,8 +992,10 @@ const Store=(()=>{
 // ═══ CLOUD: login Google + sincronização (Firebase/Firestore) ═══
 const Cloud=(()=>{
   const V='10.12.2',BASE='https://www.gstatic.com/firebasejs/'+V+'/';
-  const LS_SYNC='rplus7_cloud_sync',LS_UID='rplus7_cloud_uid';
-  let auth=null,dbF=null,user=null,available=false,status='unconfigured',pushTimer=null,authReady=false;
+  const LS_SYNC='rplus7_cloud_sync',LS_UID='rplus7_cloud_uid',LS_ACCESS='rplus7_access';
+  // ACESSO MASTER (beta fechado): estes emails têm acesso garantido sempre
+  const MASTER_EMAILS=['alvarofelisbertojr@gmail.com','giulialongobardi92@gmail.com'];
+  let auth=null,dbF=null,user=null,available=false,status='unconfigured',pushTimer=null,authReady=false,deniedEmail=null;
   let lastSync=+(localStorage.getItem(LS_SYNC)||0);
   function setLastSync(t){lastSync=t||Date.now();try{localStorage.setItem(LS_SYNC,''+lastSync);}catch(e){}}
   function ui(){try{if(typeof refreshAuthUI==='function')refreshAuthUI();}catch(e){}}
@@ -1005,10 +1016,29 @@ const Cloud=(()=>{
   }
   async function signIn(){
     if(!available){alert('Login indisponível no momento. Verifique sua internet e tente de novo.');return;}
-    try{const p=new firebase.auth.GoogleAuthProvider();await auth.signInWithPopup(p);}
+    try{const p=new firebase.auth.GoogleAuthProvider();p.setCustomParameters({prompt:'select_account'});await auth.signInWithPopup(p);}
     catch(e){alert('Não foi possível entrar: '+((e&&e.message)||e));}
   }
+  function retryOtherAccount(){deniedEmail=null;ui();signIn();}
   async function signOut(){try{if(auth)await auth.signOut();}catch(e){}setLastSync(0);}
+  // ── Controle de acesso (beta fechado / allowlist) ──
+  function emailLC(){return (user&&user.email||'').toLowerCase();}
+  function isMaster(){return MASTER_EMAILS.indexOf(emailLC())>-1;}
+  async function checkAccess(u){
+    if(!u)return false;
+    const email=(u.email||'').toLowerCase();
+    if(MASTER_EMAILS.indexOf(email)>-1){try{localStorage.setItem(LS_ACCESS,'1');}catch(e){}return true;}
+    try{
+      const d=await dbF.collection('allowed_users').doc(email).get();
+      const ok=d.exists&&d.data().enabled===true;
+      try{localStorage.setItem(LS_ACCESS,ok?'1':'0');}catch(e){}
+      return ok;
+    }catch(e){return localStorage.getItem(LS_ACCESS)==='1';} // offline: não trava quem já entrou
+  }
+  async function addAllowed(email){email=(email||'').trim().toLowerCase();if(!email||!dbF)throw new Error('email/db');await dbF.collection('allowed_users').doc(email).set({email,enabled:true,role:'tester',addedBy:emailLC(),addedAt:Date.now()});}
+  async function setAllowedEnabled(email,en){email=(email||'').trim().toLowerCase();if(!dbF)return;await dbF.collection('allowed_users').doc(email).set({enabled:!!en},{merge:true});}
+  async function removeAllowed(email){if(!dbF)return;await dbF.collection('allowed_users').doc((email||'').trim().toLowerCase()).delete();}
+  async function listAllowed(){if(!dbF)return[];const s=await dbF.collection('allowed_users').get();return s.docs.map(d=>d.data());}
   async function wipeCloud(){try{if(user&&dbF)await dbF.collection('backups').doc(user.uid).delete();}catch(e){}setLastSync(0);}
   async function pull(){if(!user)return null;const d=await dbF.collection('backups').doc(user.uid).get();return d.exists?d.data():null;}
   async function push(){
@@ -1037,6 +1067,10 @@ const Cloud=(()=>{
   async function onAuthChange(){
     ui();
     if(!user){if(typeof showGate==='function')showGate();return;}
+    // beta fechado: só master ou allowlist entram
+    const ok=await checkAccess(user);
+    if(!ok){deniedEmail=user.email||'';try{await auth.signOut();}catch(e){}return;} // signOut dispara onAuthChange(null) -> gate mostra "não autorizado"
+    deniedEmail=null;
     try{const prev=localStorage.getItem(LS_UID);if(prev!==user.uid){setLastSync(0);localStorage.setItem(LS_UID,user.uid);}}catch(e){}
     await whenStoreReady();
     let remote=null;try{remote=await pull();}catch(e){}
@@ -1044,8 +1078,8 @@ const Cloud=(()=>{
     else{await push();}
     if(typeof enterApp==='function')enterApp();
   }
-  return {init,signIn,signOut,wipeCloud,push,schedulePush,
-    get user(){return user;},get available(){return available;},get status(){return status;},get lastSync(){return lastSync;},get authReady(){return authReady;}};
+  return {init,signIn,signOut,wipeCloud,push,schedulePush,retryOtherAccount,isMaster,addAllowed,setAllowedEnabled,removeAllowed,listAllowed,
+    get user(){return user;},get available(){return available;},get status(){return status;},get lastSync(){return lastSync;},get authReady(){return authReady;},get deniedEmail(){return deniedEmail;}};
 })();
 
 // ═══ LOG HELPERS ═══
@@ -1384,7 +1418,7 @@ function renderPlan(){
   set('pQSlider',D.qGoal);document.getElementById('pQSliderN').textContent=D.qGoal;
   set('pMinSlider',D.lessonMin);document.getElementById('pMinN').textContent=D.lessonMin;
   set('pRevSlider',D.reviewBudget||20);document.getElementById('pRevN').textContent=D.reviewBudget||20;
-  updPSum();renderDec('decFull',false);renderCloud();
+  updPSum();renderDec('decFull',false);renderCloud();renderAdmin();
 }
 function savePlan(){
   const d=document.getElementById('pDate')?.value;
@@ -1606,6 +1640,10 @@ function refreshAuthUI(){try{renderGate();}catch(e){}try{renderCloud();}catch(e)
 function renderGate(){
   const el=document.getElementById('gateAction');if(!el||typeof Cloud==='undefined')return;
   const st=Cloud.status;
+  if(Cloud.deniedEmail){
+    el.innerHTML='<div class="gate-err">🔒 Beta fechado. A conta <strong>'+esc(Cloud.deniedEmail)+'</strong> ainda não está autorizada.<br>Peça um convite a quem te indicou o app.</div><button class="gbtn" style="margin-top:12px" onclick="Cloud.retryOtherAccount()"><span class="gg">G</span> Entrar com outra conta</button>';
+    return;
+  }
   if(!Cloud.available){
     if(st==='error')el.innerHTML='<div class="gate-err">Não foi possível conectar para o login. Verifique sua internet.</div><button class="gbtn" style="margin-top:12px" onclick="Cloud.init();renderGate()">Tentar de novo</button>';
     else el.innerHTML='<div class="gate-loading">Carregando login…</div>';
@@ -1651,6 +1689,33 @@ function renderCloud(){
       <button class="btn btn-o btn-sm" onclick="Cloud.signOut()">Sair</button>
     </div>`;
 }
+
+// ═══ ADMIN (beta fechado) ═══
+async function renderAdmin(){
+  const card=document.getElementById('adminCard');if(!card)return;
+  const master=(typeof Cloud!=='undefined'&&Cloud.user&&Cloud.isMaster());
+  if(!master){card.style.display='none';return;}
+  card.style.display='';
+  const el=document.getElementById('adminList');if(!el)return;
+  el.innerHTML='<div style="font-size:12px;color:var(--t2)">Carregando lista…</div>';
+  let list=[];try{list=await Cloud.listAllowed();}catch(e){el.innerHTML='<div style="font-size:12px;color:var(--d);line-height:1.5">Não foi possível ler a lista. Atualize as Regras do Firestore (allowed_users) — peça as regras ao assistente.</div>';return;}
+  if(!list.length){el.innerHTML='<div style="font-size:12px;color:var(--t2);line-height:1.5">Nenhum testador convidado ainda. Vocês (master) sempre têm acesso.</div>';return;}
+  el.innerHTML=list.sort((a,b)=>(''+(a.email||'')).localeCompare(''+(b.email||''))).map(u=>{
+    const en=u.enabled!==false,em=esc(u.email||'');
+    return `<div class="hl"><div class="hl-dot" style="background:${en?'var(--s)':'var(--t3)'}"></div>
+      <div class="hl-info"><div class="hl-t">${em}</div><div class="hl-s">${en?'ativo':'desativado'}${u.role==='admin'?' · admin':''}</div></div>
+      <button class="btn btn-o btn-sm" style="padding:5px 8px" onclick="adminToggle('${em}',${en?'false':'true'})">${en?'Pausar':'Ativar'}</button>
+      <button class="hl-del" onclick="adminRemove('${em}')">✕</button></div>`;
+  }).join('');
+}
+async function adminInvite(){
+  const inp=document.getElementById('adminEmail');const email=(inp.value||'').trim().toLowerCase();
+  if(!email||email.indexOf('@')<1){alert('Digite um email válido.');return;}
+  try{await Cloud.addAllowed(email);inp.value='';renderAdmin();}
+  catch(e){alert('Não foi possível convidar. Confirme que as Regras do Firestore foram atualizadas e que você está online.');}
+}
+async function adminToggle(email,en){try{await Cloud.setAllowedEnabled(email,en);renderAdmin();}catch(e){alert('Falha ao atualizar.');}}
+async function adminRemove(email){if(!confirm('Remover o acesso de '+email+'?'))return;try{await Cloud.removeAllowed(email);renderAdmin();}catch(e){alert('Falha ao remover.');}}
 
 // ═══ BACKUP: EXPORTAR / IMPORTAR ═══
 async function exportData(){
