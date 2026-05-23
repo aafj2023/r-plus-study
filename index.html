@@ -465,24 +465,13 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sa
       </div>
 
       <div class="card">
-        <div class="ctitle" style="color:var(--p)">📅 Esta semana</div>
-        <div class="pwrap"><div class="pfill" id="aWeekBar" style="background:var(--p);width:0%"></div></div>
-        <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--t2);margin-bottom:10px">
-          <span id="aWeekLabel">0 / 0 aulas</span><span id="aWeekPct">0%</span>
-        </div>
-        <div class="week-summary">
-          <div class="ws-item"><div class="ws-n" style="color:var(--p)" id="aWTotal">0</div><div class="ws-l">feitas</div></div>
-          <div class="ws-item"><div class="ws-n" style="color:var(--w)" id="aWFalt">—</div><div class="ws-l">faltam</div></div>
-          <div class="ws-item"><div class="ws-n" style="color:var(--t2)" id="aWDia">—</div><div class="ws-l">por dia</div></div>
-        </div>
+        <div class="ctitle" style="color:var(--p)">📅 Esta semana <span style="color:var(--t3);font-weight:600">· realizado × planejado</span></div>
+        <div id="aWeek"></div>
       </div>
 
       <div class="card">
         <div class="ctitle" style="color:var(--p)">🗓️ Este mês</div>
-        <div class="pwrap"><div class="pfill" id="aMonthBar" style="background:var(--p);width:0%"></div></div>
-        <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--t2)">
-          <span id="aMonthLabel">0 / 0 aulas</span><span id="aMonthPct">0%</span>
-        </div>
+        <div id="aMonth"></div>
       </div>
 
       <div class="card">
@@ -532,24 +521,13 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sa
       </div>
 
       <div class="card">
-        <div class="ctitle" style="color:var(--q)">📅 Esta semana</div>
-        <div class="pwrap"><div class="pfill" id="qWeekBar" style="background:var(--q);width:0%"></div></div>
-        <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--t2);margin-bottom:10px">
-          <span id="qWeekLabel">0 / 0 questões</span><span id="qWeekPct">0%</span>
-        </div>
-        <div class="week-summary">
-          <div class="ws-item"><div class="ws-n" style="color:var(--q)" id="qWTotal">0</div><div class="ws-l">feitas</div></div>
-          <div class="ws-item"><div class="ws-n" style="color:var(--w)" id="qWFalt">—</div><div class="ws-l">faltam</div></div>
-          <div class="ws-item"><div class="ws-n" style="color:var(--t2)" id="qWDia">—</div><div class="ws-l">por dia</div></div>
-        </div>
+        <div class="ctitle" style="color:var(--q)">📅 Esta semana <span style="color:var(--t3);font-weight:600">· realizado × planejado</span></div>
+        <div id="qWeek"></div>
       </div>
 
       <div class="card">
         <div class="ctitle" style="color:var(--q)">🗓️ Este mês</div>
-        <div class="pwrap"><div class="pfill" id="qMonthBar" style="background:var(--q);width:0%"></div></div>
-        <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--t2)">
-          <span id="qMonthLabel">0 / 0 questões</span><span id="qMonthPct">0%</span>
-        </div>
+        <div id="qMonth"></div>
       </div>
 
       <div class="card">
@@ -1283,20 +1261,10 @@ function renderProj(elId){
 
 // ═══ AULAS TAB ═══
 function renderAulas(){
-  const wa=weekAulas(),wg=aulaGoal(),flA=Math.max(0,wg-wa),du=daysLeftWeek();
   document.getElementById('aTodayN').textContent=todayAula();
-  document.getElementById('rcGoal2').textContent=wg;
-  const pct=wg?Math.min(100,Math.round(wa/wg*100)):0;
-  document.getElementById('aWeekBar').style.width=pct+'%';
-  document.getElementById('aWeekLabel').textContent=wa+' / '+wg+' aulas';
-  document.getElementById('aWeekPct').textContent=pct+'%';
-  document.getElementById('aWTotal').textContent=wa;
-  document.getElementById('aWFalt').textContent=flA;
-  document.getElementById('aWDia').textContent=Math.ceil(flA/du)+'/dia';
-  const ma=monthAulas(),mm=aulaMonthMeta(),mpct=mm?Math.min(100,Math.round(ma/mm*100)):0;
-  document.getElementById('aMonthBar').style.width=mpct+'%';
-  document.getElementById('aMonthLabel').textContent=ma+' / '+mm+' aulas';
-  document.getElementById('aMonthPct').textContent=mpct+'%';
+  document.getElementById('rcGoal2').textContent=aulaGoal();
+  const aw=document.getElementById('aWeek');if(aw)aw.innerHTML=paceBar('Aulas','#6366f1',weekPacing().a,'aulas');
+  const am=document.getElementById('aMonth');if(am)am.innerHTML=paceBar('Aulas','#6366f1',monthPacing().a,'aulas');
   renderProj('projAulas',false);
   renderAHistChart();
   renderLessonHist();
@@ -1309,20 +1277,10 @@ function addAHist(){
 
 // ═══ QUESTÕES TAB ═══
 function renderQuestoes(){
-  const wq=weekQ(),qg=qGoal(),flQ=Math.max(0,qg-wq),du=daysLeftWeek();
   document.getElementById('qTodayN').textContent=todayQ();
-  document.getElementById('rcQGoal2').textContent=qg;
-  const pct=qg?Math.min(100,Math.round(wq/qg*100)):0;
-  document.getElementById('qWeekBar').style.width=pct+'%';
-  document.getElementById('qWeekLabel').textContent=wq+' / '+qg+' questões';
-  document.getElementById('qWeekPct').textContent=pct+'%';
-  document.getElementById('qWTotal').textContent=wq;
-  document.getElementById('qWFalt').textContent=flQ;
-  document.getElementById('qWDia').textContent=Math.ceil(flQ/du)+'/dia';
-  const mq=monthQ(),mm=qMonthMeta(),mpct=mm?Math.min(100,Math.round(mq/mm*100)):0;
-  document.getElementById('qMonthBar').style.width=mpct+'%';
-  document.getElementById('qMonthLabel').textContent=mq+' / '+mm+' questões';
-  document.getElementById('qMonthPct').textContent=mpct+'%';
+  document.getElementById('rcQGoal2').textContent=qGoal();
+  const qw=document.getElementById('qWeek');if(qw)qw.innerHTML=paceBar('Questões','#8b5cf6',weekPacing().q,'questões');
+  const qm=document.getElementById('qMonth');if(qm)qm.innerHTML=paceBar('Questões','#8b5cf6',monthPacing().q,'questões');
   renderQHistChart();
 }
 function addQHist(){
