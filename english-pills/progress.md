@@ -25,6 +25,7 @@ After each review, memory status adjusts the next interval:
 | # | Word/Expression | Type | Level | Learned | Curve stage | Next review | Memory status |
 |---|-----------------|------|-------|---------|-------------|-------------|---------------|
 | 001 | sort out | phrasal verb | B2 | 2026-07-08 | day 0 | 2026-07-09 (1d) | — |
+| 002 | come up with | phrasal verb | B2 | 2026-07-08 | day 0 | 2026-07-09 (1d) | — |
 
 ## Observed patterns
 
