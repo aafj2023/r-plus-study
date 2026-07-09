@@ -1,0 +1,97 @@
+{
+  "student": { "level": "B1/B2", "target": "C1" },
+  "updated": "2026-07-09",
+  "srsIntervals": [1, 3, 7, 14, 30, 90],
+  "pills": [
+    {
+      "id": 1,
+      "word": "sort out",
+      "type": "phrasal verb",
+      "level": "B2",
+      "pron": "/sɔːrt aʊt/ — \"sórt-áut\"",
+      "frequency": 5,
+      "meaning": "To fix a problem, organize something messy, or deal with a situation until it's resolved.",
+      "nuances": [
+        "Natives use it constantly at work and at home — the natural way to say you'll handle something.",
+        "vs. solve: 'solve' is for puzzles/equations; 'sort out' is for real-life messes.",
+        "vs. fix: 'fix' is for broken things; 'sort out' is for confusing or disorganized situations."
+      ],
+      "examples": [
+        "Don't worry about the schedule conflict — I'll sort it out with the manager today.",
+        "I finally sorted out my inbox. It was a complete mess."
+      ],
+      "translation": "resolver / organizar / dar um jeito em",
+      "similar": [
+        { "word": "work out", "note": "resolver pensando, encontrar a solução mentalmente" },
+        { "word": "fix up", "note": "consertar/arrumar algo físico" }
+      ],
+      "extra": "Nativos usam \"get it sorted\" (UK) como forma curta: \"Leave it with me, I'll get it sorted.\"",
+      "practice": {
+        "question": "My internet keeps dropping. I need to ______ it ______ before my meeting tomorrow.",
+        "answer": "sort / out",
+        "full": "I need to sort it out before my meeting tomorrow."
+      },
+      "learned": "2026-07-08"
+    },
+    {
+      "id": 2,
+      "word": "come up with",
+      "type": "phrasal verb",
+      "level": "B2",
+      "pron": "/kʌm ʌp wɪð/ — \"câm-ÂP-uid\"",
+      "frequency": 5,
+      "meaning": "To think of and produce an idea, plan, solution, or answer — especially when you need one.",
+      "nuances": [
+        "Highlights the creative effort of producing something from your own head.",
+        "vs. think of: 'think of' is just having the thought; 'come up with' is delivering the result.",
+        "vs. invent: 'invent' is for products/devices; 'come up with' works for ideas, excuses, names, plans."
+      ],
+      "examples": [
+        "We need to come up with a better name for this project by Friday.",
+        "I don't know how he comes up with these excuses — they get more creative every time."
+      ],
+      "translation": "bolar / ter uma ideia / inventar (solução, plano, desculpa)",
+      "similar": [
+        { "word": "think up", "note": "quase igual, mas menos comum" },
+        { "word": "dream up", "note": "sugere algo mirabolante ou irreal" }
+      ],
+      "extra": "Collocations: come up with an idea / a solution / a plan / an excuse / a name.",
+      "practice": {
+        "question": "The client rejected our proposal, so we have to ______ ______ ______ something new by Monday.",
+        "answer": "come up with",
+        "full": "We have to come up with something new by Monday."
+      },
+      "learned": "2026-07-08"
+    },
+    {
+      "id": 3,
+      "word": "swamped",
+      "type": "adjective / expression",
+      "level": "B2",
+      "pron": "/swɒmpt/ — \"suÔmpt\"",
+      "frequency": 4,
+      "meaning": "Extremely busy — with so much work or so many tasks that you can barely handle them.",
+      "nuances": [
+        "The natural answer to 'How's your week?' when you're overloaded. Informal but professional-safe.",
+        "vs. busy: 'busy' is neutral; 'swamped' is busy times ten.",
+        "vs. overwhelmed: 'overwhelmed' adds emotional stress; 'swamped' is just volume of work."
+      ],
+      "examples": [
+        "Can we reschedule? I'm completely swamped this week.",
+        "She's been swamped with emails since she got back from vacation."
+      ],
+      "translation": "atolado / soterrado de trabalho / na correria total",
+      "similar": [
+        { "word": "snowed under", "note": "equivalente britânico" },
+        { "word": "slammed", "note": "equivalente americano, mais informal" }
+      ],
+      "extra": "Collocation-chave: swamped WITH — swamped with work / emails / requests.",
+      "practice": {
+        "question": "Sorry I didn't reply yesterday — I was ______ ______ patient reports all day.",
+        "answer": "swamped with",
+        "full": "I was swamped with patient reports all day."
+      },
+      "learned": "2026-07-09"
+    }
+  ]
+}
