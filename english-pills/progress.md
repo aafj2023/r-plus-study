@@ -24,8 +24,11 @@ After each review, memory status adjusts the next interval:
 
 | # | Word/Expression | Type | Level | Learned | Curve stage | Next review | Memory status |
 |---|-----------------|------|-------|---------|-------------|-------------|---------------|
-| 001 | sort out | phrasal verb | B2 | 2026-07-08 | day 0 | 2026-07-09 (1d) | — |
-| 002 | come up with | phrasal verb | B2 | 2026-07-08 | day 0 | 2026-07-09 (1d) | — |
+| 001 | sort out | phrasal verb | B2 | 2026-07-08 | 1d (presented 2026-07-09, awaiting response) | 2026-07-11 (3d)* | — |
+| 002 | come up with | phrasal verb | B2 | 2026-07-08 | 1d (presented 2026-07-09, awaiting response) | 2026-07-11 (3d)* | — |
+| 003 | swamped | adjective/expression | B2 | 2026-07-09 | day 0 | 2026-07-10 (1d) | — |
+
+\* provisional: interval only advances after the student reports 🟢; a 🟡 repeats it and a 🔴 resets to 1d.
 
 ## Observed patterns
 
