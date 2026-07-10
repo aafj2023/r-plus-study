@@ -10,15 +10,27 @@ Pareto 80/20) e em análise de banca/edital.
 > Você está na janela pré-edital ideal (~6 meses): quem constrói base agora chega ao edital
 > revisando, não aprendendo.
 
+## 📱 O app (Ultra BACEN)
+
+**PWA instalável e offline em [`/bacen/`](https://aafj2023.github.io/r-plus-study/bacen/)** —
+registro de blocos e questões, taxa líquida Cebraspe, fila de revisão espaçada (SRS
+1·3·7·15·30·60·90·180), semáforos por disciplina, motor de decisão com 12 regras automáticas,
+gráficos de horas e desempenho, indicador de prontidão e backup JSON. No celular: abrir o
+link → menu do navegador → "Adicionar à tela inicial".
+
 ## 📂 Estrutura do kit
 
 | Arquivo | O que é | Quando usar |
 |---|---|---|
 | `PROMPT-MENTOR.md` | O prompt completo do Mentor Supremo | Cole no início de qualquer sessão de IA para reativar o mentor |
-| `01-diagnostico.md` | Questionário de diagnóstico (Etapas 1–2) | **Preencha primeiro.** Todo o plano depende dele |
+| `01-diagnostico.md` | Questionário de diagnóstico (Etapas 1–2) — parcialmente preenchido em 10/07/2026 | **Complete os campos pendentes.** Todo o plano depende dele |
 | `02-cenario-bacen-2026.md` | Cenário atual do concurso + análise do edital 2024 e da banca | Leitura obrigatória antes de montar o plano |
 | `03-plano-pre-edital.md` | Priorização estratégica + ciclo de estudos + protocolos (revisão espaçada, questões, simulados) | Base do estudo diário até o edital sair |
 | `04-controle-evolucao.md` | Tabelas de KPIs e controle de evolução | Atualize semanalmente; traga para o mentor reotimizar |
+| `sistema/00-arquitetura.md` | Ultra Sistema: arquitetura, matriz de prioridade, roadmap com gates | Visão geral do sistema completo |
+| `sistema/01-implementacao-sheets.md` | Fórmulas prontas p/ Google Sheets/Excel + mapeamento Notion | Se preferir planilha ao app |
+| `sistema/02-motor-de-decisao.md` | 36 regras SE/ENTÃO (12 automatizadas no app) | Consulta na revisão semanal |
+| `sistema/03-manual-operacional.md` | OKRs, rotinas diária/semanal/mensal, relatórios, PDCA | Manual de uso do sistema |
 
 ## ▶️ Como usar (fluxo de mentoria contínua)
 
