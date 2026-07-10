@@ -4,27 +4,33 @@
 > genérico — e recomendação genérica viola a regra nº 1 do mentor. Seja honesto: nota
 > inflada aqui vira reprovação silenciosa na prova. Tempo estimado: 15–20 min.
 
+> **Registro da entrevista de 10/07/2026 (sessão com o mentor):** cargo e perfil abaixo já
+> preenchidos a partir das respostas do candidato. Campos com `___` ainda pendentes.
+
 ## 1. Objetivo
 
-- **Cargo pretendido** (Auditor/antigo Analista, Procurador, Técnico): `___`
-- **Área pretendida** (em 2024: Economia e Finanças ou Tecnologia da Informação; o novo edital pode alterar): `___`
+- **Cargo pretendido:** Auditor (antigo Analista) ✅
+- **Área pretendida:** Economia e Finanças ✅
 - **Motivação principal** (por que BACEN e não outro órgão?): `___`
 - **Meta de classificação** (dentro das ~100 vagas de Auditor? top 50?): `___`
 - **Faria outros concursos da área econômica no caminho (RFB, CVM, STN, TCU)?** `___`
 
 ## 2. Histórico em concursos
 
-- Já estudou para concursos antes? Por quanto tempo? `___`
-- Quantas provas já realizou (quais)? `___`
-- Aprovações / classificações obtidas: `___`
-- Reprovações e pontuação aproximada (% de acertos): `___`
-- Principais dificuldades sentidas (tempo de prova? discursiva? matérias específicas? constância?): `___`
+- Já estudou para concursos antes? **Não — nunca estudou para concurso público.** ✅
+- Quantas provas já realizou: nenhuma de concurso (tem certificações de mercado: CFP, assessor XP)
+- Principal implicação: **zero calibragem com prova de banca** (certo/errado Cebraspe,
+  penalização, discursiva com espelho) — este é o gargalo nº 1, não o conteúdo.
 
 ## 3. Formação
 
-- Escolaridade / graduação (curso e ano): `___`
-- Pós-graduação: `___`
-- Afinidade prévia com economia/finanças/estatística/TI: `___`
+- **Graduação:** Economia ✅
+- **Pós-graduação:** Insper — Advanced Program in Finance ✅
+- **Certificações:** CFP (planejador financeiro); assessor de investimentos (XP) ✅
+- **Experiência profissional:** FP&A; passagens por Warren Investimentos e JV de mineração
+  da Cosan ✅
+- **Afinidade:** altíssima com economia/finanças/mercados; contabilidade gerencial pelo
+  FP&A (mas COSIF é outro animal); estatística formal a confirmar.
 
 ## 4. Rotina
 
@@ -40,14 +46,20 @@
 
 ## 5. Tempo disponível (horas LÍQUIDAS = cronômetro rodando, sem celular)
 
-- Segunda a sexta, por dia: `___` h
+- Segunda a sexta, por dia: **3–4 h** ✅ (informado na entrevista de 10/07/2026)
 - Sábado: `___` h | Domingo: `___` h
-- **Total semanal líquido:** `___` h
+- **Total semanal líquido (estimativa de trabalho): ~20–24 h** — confirmar fins de semana
 - Dias de folga/descanso planejados: `___`
 
 ## 6. Autoavaliação por disciplina (0 a 5)
 
 Escala: **0** nunca estudei · **1** muito fraco · **2** fraco · **3** médio · **4** bom · **5** excelente
+
+> **[ESTIMATIVA do mentor, 10/07/2026 — a confirmar com 20 questões Cebraspe por matéria]:**
+> Macro/Micro ~3–4 (economista, mas enferrujado p/ nível de prova); Finanças ~4–5 (CFP + carreira);
+> SFN/mercados ~3–4 (XP); Estatística/Econometria **?** (maior incógnita); Contabilidade/COSIF ~1–2
+> (FP&A ajuda no débito/crédito, COSIF é específico); Direitos ~0–1; Português/Inglês **?**.
+> O teste real substitui a autoimagem: nota de verdade = % de acertos em questões da banca.
 
 ### Conhecimentos básicos (base edital 2024 — confirmar no novo edital)
 

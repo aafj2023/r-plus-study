@@ -5,6 +5,23 @@
 > edital (≤ jan/2027) → prova ([ESTIMATIVA] 1º semestre/2027)**. Será recalibrado a cada
 > atualização do `04-controle-evolucao.md`.
 
+## 0. ⚡ Recalibração de 10/07/2026 (após entrevista — Etapa 13)
+
+Perfil confirmado: **economista, Insper (finanças), CFP, ex-XP, FP&A — nunca estudou para
+concurso; 3–4 h líquidas/dia (~20–24 h/semana)**. Isso inverte a lógica do plano-base:
+
+1. **Economia sai de "aprender" para "reativar via questões":** entrar direto por questões
+   Cebraspe; teoria só nos subtópicos com acerto < 70% (poupa ~150–200 h vs. começar por teoria).
+2. **Novas prioridades MÁXIMAS:** Estatística/Econometria (maior incógnita do perfil),
+   Contabilidade/COSIF (quase zero real) e **"alfabetização de banca"** — técnica
+   certo/errado, penalização e discursiva. O risco nº 1 do candidato não é conteúdo,
+   é nunca ter jogado o jogo da prova.
+3. **Português Cebraspe diário desde o dia 1** (20 questões/dia): profissional de mercado
+   costuma superestimar a própria nota no padrão da banca.
+4. **Direito Const./Adm. sobe de Baixa para Média:** com economia precisando de menos horas,
+   sobra espaço para começar Direito (0 de base) antes do edital, diluindo a decoreba.
+5. Ciclo semanal ajustado na seção 2.1 abaixo.
+
 ## 1. Priorização estratégica (Etapa 4)
 
 Critério: `retorno esperado = peso provável × incidência histórica × (1 − seu domínio)`,
@@ -42,6 +59,23 @@ Ciclo-base para ~20 h líquidas/semana (escale proporcionalmente ao seu tempo re
 | 13 | Inglês ou RLM (alternando) | questões de prova |
 | 14 | **Revisões do dia (SRS)** + flashcards vencidos | só retrieval, zero teoria nova |
 | Sáb. | 1 discursiva (40–80 linhas) + correção por espelho | alternar tema de atualidades (P3) e situação-problema técnica (P4) |
+
+### 2.1 Ciclo personalizado (10/07/2026) — ~22 h/semana, perfil economista/CFP
+
+14 blocos de 50 min em dias úteis (2–3 blocos/dia) + 4–6 blocos no fim de semana:
+
+| Blocos/semana | Frente | Como |
+|---|---|---|
+| 4 | **Estatística/Econometria** | Teoria dirigida + exercícios à mão (maior incógnita → horário de pico de energia) |
+| 3 | **Contabilidade Geral → COSIF** | Do débito/crédito ao COSIF; tabela-resumo de lançamentos |
+| 3 | **Economia (Macro/Micro/Monetária)** | SÓ questões Cebraspe + recall; teoria apenas onde acerto < 70% |
+| 2 | **Português Cebraspe** (também vale 20 questões/dia em micro-doses) | Questões + análise de erro |
+| 1 | **Direito Constitucional** (dias alternados com Administrativo) | Videoaula/PDF + questões |
+| 1 | **SFN/normativos + flashcards do que errou na semana** | Retrieval puro |
+| Sáb. | 1 discursiva (alternando P3 atualidades / P4 técnica) + revisões SRS da semana | Correção por espelho |
+
+Finanças e Ec. Internacional/Brasileira entram no mês 2–3 (base do candidato já é alta —
+manutenção por questões quinzenais até lá).
 
 Sequenciamento anti-fadiga: alternar matéria "pesada" (cálculo) com "leve" (leitura);
 matéria de prioridade Máxima sempre no seu horário de pico de energia; **interleaving**

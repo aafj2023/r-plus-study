@@ -55,4 +55,5 @@ Nível de domínio: 0–5 (mesma escala do diagnóstico). Evolução: ↑ ↓ �
 | Data | Decisão / ajuste | Motivo (dado que justificou) |
 |---|---|---|
 | 2026-07-09 | Kit criado; priorização inicial definida (hipótese Cebraspe, área Economia e Finanças) | Autorização do concurso em 03/07/2026; edital ≤ jan/2027 |
+| 2026-07-10 | Entrevista de diagnóstico: economista/Insper/CFP/FP&A, nunca estudou p/ concurso, 3–4 h/dia. Recalibração: Economia vira reativação-por-questões; Máximas = Estatística, COSIF e alfabetização de banca; Direito sobe p/ Média; ciclo 2.1 criado | Respostas do candidato na sessão de 10/07 (ver `01-diagnostico.md`) |
 | | | |
